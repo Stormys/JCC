@@ -49,7 +49,7 @@ Scanner (Tokenization):
  * sizeof
  * static
  * switch
- * typedef
+ * ~~typedef~~
  * union
  * unsigned
  * void
