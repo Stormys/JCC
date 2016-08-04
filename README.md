@@ -3,6 +3,7 @@ This is my attempt to create a complete compiler for the c programming language.
 
 ## Functionality
 PreProccessor:
+* Comments
 * ~~#include~~ 
 * #define
 * #undef
