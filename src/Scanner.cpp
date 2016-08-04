@@ -351,7 +351,7 @@ void Scanner::get_next_character() {
 	last_character = file->the_file.get();
 }
 
-bool Scanner::isWhiteSpace(char c) {
+bool Scanner::isWhiteSpace(char& c) {
 	return c == ' ' || c == '\n' || c == '\t' || c == '\r';
 }
 

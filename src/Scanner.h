@@ -17,7 +17,7 @@ private:
 		File_Linked* next = nullptr;
 	};
 
-	static bool isWhiteSpace(char c);
+	static bool isWhiteSpace(char& c);
 	static bool isAlpha(char& c);
 	static bool isNumeric(char& c);
 
