@@ -2,7 +2,6 @@
 #include "Token.h"
 #include <fstream>
 #ifdef _WIN32
-#include <string.h>
 #include <windows.h>
 #endif
 class Scanner
@@ -27,9 +26,10 @@ private:
 	Token* find_identifier();
 	Token* find_integer();
 	Token* check_keyword_identifier(Token::Kind);
+	Token* possible_keyword(std::string,Token::Kind);
 
 	Token* process_macro_command();
-	File_Linked* find_file_in_standard_lib(std::string);
+	File_Linked * find_file_in_standard_lib(std::string);
 
 	std::string file_name;
 	File_Linked* file;

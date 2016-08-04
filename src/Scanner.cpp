@@ -109,6 +109,24 @@ Token* Scanner::Get_Next_Token()
 		switch (last_character) {
 		case '=':
 			return new Token(Token::DIVASSIGN, "/=");
+		case '/': //Line Comment
+			while ((last_character = file->the_file.get()) != '\n' && last_character != -1);
+			line[line.length() - 1] = ' ';
+			if (last_character != -1)
+				line += last_character;
+			new_line();
+			return Get_Next_Token();
+		case '*': //Block Comment
+			line[line.length() - 1] = ' ';
+			while ((last_character = file->the_file.get()) != -1) {
+				if (last_character == '*') {
+					if ((last_character = file->the_file.get()) == '/')
+						return Get_Next_Token();
+					else if (last_character == -1)
+						return new Token(Token::ERROR1, "End of file found inside comment");
+				}
+			}
+			return new Token(Token::ERROR1, "End of file found inside comment");
 		default:
 			file->the_file.putback(last_character);
 			return new Token(Token::DIVIDE, "/");
@@ -202,6 +220,14 @@ Token* Scanner::Get_Next_Token()
 		return new Token(Token::COMMA, ",");
 	case '.':
 		return new Token(Token::PERIOD, ".");
+	case 'a':
+		return possible_keyword("uto", Token::AUTO);
+	case 'b':
+		return possible_keyword("reak", Token::BREAK);
+	case 'g':
+		return possible_keyword("oto", Token::GOTO);
+	case 'l':
+		return possible_keyword("ong", Token::LONG);
 	case 'i':
 		get_next_character();
 		switch (last_character) {
@@ -215,27 +241,11 @@ Token* Scanner::Get_Next_Token()
 			};
 		};
 	case 'r':
-		get_next_character();
-		switch (last_character) {
-		case 'e':
-			get_next_character();
-			switch (last_character) {
-			case 't':
-				get_next_character();
-				switch (last_character) {
-				case 'u':
-					get_next_character();
-					switch (last_character) {
-					case 'r':
-						get_next_character();
-						switch (last_character) {
-						case 'n':
-							return check_keyword_identifier(Token::RETURN);
-						};
-					};
-				};
-			};
-		};
+		return possible_keyword("eturn",Token::RETURN);
+	case 't':
+		return possible_keyword("ypedef", Token::TYPEDEF);
+	case 'w':
+		return possible_keyword("hile", Token::WHILE);
 	default:
 		result = find_identifier();
 		if (result != nullptr)
@@ -324,6 +334,15 @@ Token* Scanner::check_keyword_identifier(Token::Kind key) {
 	}
 	file->the_file.putback(last_character);
 	return new Token(key, current_lexeme);
+}
+
+Token* Scanner::possible_keyword(std::string keyword,Token::Kind key) {
+	for (char c : keyword) {
+		get_next_character();
+		if (last_character != c)
+			return find_identifier();
+	}
+	return check_keyword_identifier(key);
 }
 
 void Scanner::get_next_character() {
