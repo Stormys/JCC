@@ -1,6 +1,6 @@
 #pragma once
-#include "Parser.h"
-//#include "Scanner.h"
+//#include "Parser.h"
+#include "Scanner.h"
 class Compiler
 {
 public:
@@ -8,7 +8,7 @@ public:
 	~Compiler();
 	void Start_compile();
 private:
-	Parser* p;
-	//Scanner* s;
+	//Parser* p;
+	Scanner* s;
 };
 

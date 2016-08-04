@@ -31,7 +31,7 @@ public:
 		DECREMENT,
 		IDENTIFIER,
 		INTEGER,
-		ERROR,
+		ERROR1,
 		E0F
 	} Type;
 	static std::string Kind_TEXT[];

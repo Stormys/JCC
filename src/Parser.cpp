@@ -9,7 +9,7 @@ NonTerminal* VARIABLE_ASSIGNMENT = new NonTerminal(*(new std::unordered_set<Toke
 
 Parser::Parser()
 {
-	s = new Scanner("test1.c");
+	s = new Scanner("test1.c",false);
 	currentToken = (*s).Get_Next_Token();
 }
 
