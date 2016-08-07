@@ -1,13 +1,14 @@
 #include "Scanner.h"
 
-Scanner::Scanner(std::string file_name_param, bool write_preprocessed_file)
+Scanner::Scanner(std::string& file_name_param, bool write_preprocessed_file)
 {
 	file_name = file_name_param;
 	File_Linked* temp = new File_Linked;
 	temp->the_file.open(file_name, std::ios::in);
+	temp->file_name = file_name;
 	file = temp;
 	if (write_preprocessed_file)
-		preprocessed_file.open(file_name.substr(0,file_name.length() - 1) + "i");
+		preprocessed_file.open(file_name.substr(0,file_name.length() - 1) + "i",std::ios::out);
 }
 
 Scanner::~Scanner()
@@ -16,34 +17,46 @@ Scanner::~Scanner()
 	preprocessed_file.close();
 }
 
+void Scanner::get_first_non_whitespace_character() {
+	while (last_character != -1 && isWhiteSpace(last_character = get_char_no_add())) {
+		line += last_character;
+		new_line();
+	}
+}
+
 Token* Scanner::Get_Next_Token()
 {
 	//Adds to line if its a one character token from last time
 	if (current_lexeme.length() == 0 && last_character != '\0')
 		line += last_character;
-	else //else reset lexeme to empty
+	else //else reset
 		current_lexeme = "";
 
 	Token* result;
 
 	//Ignoring whitespace and adding them to line
-	while (last_character != -1 && isWhiteSpace(last_character = file->the_file.get())) {
-		line += last_character;
-		new_line();
-	}
+	get_first_non_whitespace_character();
+
+	//End of File
 	if (last_character == -1) {
 		if (preprocessed_file.is_open())
 			preprocessed_file << line;
-		line = "";
+
+		file->the_file.close();
 		if (file->next == nullptr)
 			return new Token(Token::E0F, "-1");
+
+		line = "";
 		file = file->next;
 		last_character = '\0';
+
 		return Get_Next_Token();
 	}
 
+	first_char = true;
+
 	switch (last_character) {
-	case '#': //Preproccessor Macro Commands
+	case '#': //PreProccessor Macro Commands
 		result = process_macro_command();
 		if (result != nullptr)
 			return result;
@@ -58,6 +71,8 @@ Token* Scanner::Get_Next_Token()
 		return new Token(Token::CLOSE_CURLY, "}");
 	case ';':
 		return new Token(Token::SEMICOLON, ";");
+	case ':':
+		return new Token(Token::COLON,":");
 	case '[':
 		return new Token(Token::LEFT_BRACKET, "[");
 	case ']':
@@ -66,152 +81,160 @@ Token* Scanner::Get_Next_Token()
 		get_next_character();
 		switch (last_character) {
 		case '=':
+			consume_character();
 			return new Token(Token::EQUAL, "==");
 		default:
-			file->the_file.putback(last_character);
 			return new Token(Token::ASSIGN, "=");
 		};
 	case '-':
 		get_next_character();
 		switch (last_character) {
 		case '-':
+			consume_character();
 			return new Token(Token::DECREMENT, "--");
 		case '=':
+			consume_character();
 			return new Token(Token::SUBASSIGN,"-=");
 		case '>':
+			consume_character();
 			return new Token(Token::STRUCT_ELEMENT, "->");
 		default:
-			file->the_file.putback(last_character);
 			return new Token(Token::SUBTRACT, "-");
 		};
 	case '+':
 		get_next_character();
 		switch (last_character) {
 		case '+':
+			consume_character();
 			return new Token(Token::INCREMENT, "++");
 		case '=':
+			consume_character();
 			return new Token(Token::ADDASSIGN, "+=");
 		default:
-			file->the_file.putback(last_character);
 			return new Token(Token::ADD, "+");
 		};
 	case '*':
 		get_next_character();
 		switch (last_character) {
 		case '=':
+			consume_character();
 			return new Token(Token::MULASSIGN, "*=");
 		default:
-			file->the_file.putback(last_character);
 			return new Token(Token::MULTIPLY, "*");
 		};
 	case '/':
 		get_next_character();
 		switch (last_character) {
 		case '=':
+			consume_character();
 			return new Token(Token::DIVASSIGN, "/=");
+
 		case '/': //Line Comment
-			while ((last_character = file->the_file.get()) != '\n' && last_character != -1);
+			while ((last_character = get_char_no_add()) != '\n' && last_character != -1);
 			line[line.length() - 1] = ' ';
 			if (last_character != -1)
 				line += last_character;
 			new_line();
 			return Get_Next_Token();
+
 		case '*': //Block Comment
 			line[line.length() - 1] = ' ';
-			while ((last_character = file->the_file.get()) != -1) {
-				if (last_character == '*') {
-					if ((last_character = file->the_file.get()) == '/')
-						return Get_Next_Token();
-					else if (last_character == -1)
-						return new Token(Token::ERROR1, "End of file found inside comment");
-				}
-			}
-			return new Token(Token::ERROR1, "End of file found inside comment");
+			ignoreBlockComment();
+			if (last_character == -1)
+				return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(line_number) + ": error: unterminated comment");
+			return Get_Next_Token();
 		default:
-			file->the_file.putback(last_character);
 			return new Token(Token::DIVIDE, "/");
 		};
+	case '\\':
+		if (file->the_file.get() == '\n')
+			last_character == file->the_file.get();
+		else
+			return new Token(Token::ERROR1,"Found \\, expect a new line afterwords");
+		return Get_Next_Token();
 	case '%':
 		get_next_character();
 		switch (last_character) {
 		case '=':
+			consume_character();
 			return new Token(Token::MODASSIGN, "%=");
 		default:
-			file->the_file.putback(last_character);
 			return new Token(Token::MODULUS, "%");
 		};
 	case '!':
 		get_next_character();
 		switch (last_character) {
 		case '=':
+			consume_character();
 			return new Token(Token::NOT_EQUAL, "!=");
 		default:
-			file->the_file.putback(last_character);
 			return new Token(Token::LOGICAL_NOT, "!");
 		};
 	case '<':
 		get_next_character();
 		switch (last_character) {
 		case '=':
+			consume_character();
 			return new Token(Token::LESS_THAN_EQUAL, "<=");
 		case '<':
-			get_next_character();
+			consume_character();
 			switch (last_character) {
 			case '=':
+				consume_character();
 				return new Token(Token::BINARY_LEFT_SHIFT_ASSIGN, "<<=");
 			};
-			file->the_file.putback(last_character);
 			return new Token(Token::BINARY_LEFT_SHIFT, "<<");
 		default:
-			file->the_file.putback(last_character);
 			return new Token(Token::LESS_THAN, "<");
 		};
 	case '>':
 		get_next_character();
 		switch (last_character) {
 		case '=':
+			consume_character();
 			return new Token(Token::GREATER_THAN_EQUAL, ">=");
 		case '>':
 			get_next_character();
 			switch (last_character) {
 			case '=':
+				consume_character();
 				return new Token(Token::BINARY_RIGHT_SHIFT_ASSIGN, ">>=");
 			};
-			file->the_file.putback(last_character);
 			return new Token(Token::BINARY_RIGHT_SHIFT, ">>");
 		default:
-			file->the_file.putback(last_character);
 			return new Token(Token::GREATER_THAN, ">");
 		};
 	case '&':
 		get_next_character();
 		switch (last_character) {
 		case '&':
+			consume_character();
 			return new Token(Token::LOGICAL_AND, "&&");
 		case '=':
+			consume_character();
 			return new Token(Token::BINARY_AND_ASSIGN, "&=");
 		default:
-			file->the_file.putback(last_character);
 			return new Token(Token::BINARY_AND,"&");
 		};
 	case '|':
 		get_next_character();
 		switch (last_character) {
 		case '|':
+			consume_character();
 			return new Token(Token::LOGICAL_OR, "||");
 		case '=':
+			consume_character();
 			return new Token(Token::BINARY_OR_ASSIGN, "|=");
 		default:
-			file->the_file.putback(last_character);
 			return new Token(Token::BINARY_OR,"|");
 		};
 	case '^':
 		get_next_character();
 		switch (last_character) {
 		case '=':
+			consume_character();
 			return new Token(Token::BINARY_XOR_ASSIGN, "^=");
 		default:
-			file->the_file.putback(last_character);
 			return new Token(Token::BINARY_XOR, "^");
 		};
 	case '~':
@@ -224,6 +247,39 @@ Token* Scanner::Get_Next_Token()
 		return possible_keyword("uto", Token::AUTO);
 	case 'b':
 		return possible_keyword("reak", Token::BREAK);
+	case 'c':
+		get_next_character();
+		switch(last_character) {
+		case 'a':
+			return possible_keyword("se",Token::CASE);
+		case 'h':
+			return possible_keyword("ar",Token::CHAR);
+		case 'o':
+			get_next_character();
+			if (last_character == 'n') {
+				get_next_character();
+				switch(last_character) {
+				case 's':
+					return possible_keyword("t", Token::CONST);
+				case 't':
+					return possible_keyword("inue",Token::CONTINUE);
+				};
+			}
+		};
+	case 'd':
+		get_next_character();
+		switch(last_character) {
+		case 'e':
+			return possible_keyword("fault", Token::DEFAULT);
+		};
+	case 'f':
+		get_next_character();
+		switch(last_character) {
+		case 'l':
+			return possible_keyword("oat",Token::FLOAT);
+		case 'o':
+			return possible_keyword("r", Token::FOR);
+		};
 	case 'g':
 		return possible_keyword("oto", Token::GOTO);
 	case 'l':
@@ -234,18 +290,83 @@ Token* Scanner::Get_Next_Token()
 		case 'f':
 			return check_keyword_identifier(Token::IF);
 		case 'n':
-			get_next_character();
-			switch (last_character) {
-			case 't':
-				return check_keyword_identifier(Token::INT);
-			};
+			return possible_keyword("t",Token::INT);
 		};
 	case 'r':
 		return possible_keyword("eturn",Token::RETURN);
+	case 's':
+		get_next_character();
+		switch(last_character) {
+		case 'h':
+			return possible_keyword("ort", Token::SHORT);
+		case 'i':
+			get_next_character();
+			switch(last_character) {
+			case 'g':
+				return possible_keyword("ned", Token::SIGNED);
+			case 'z':
+				return possible_keyword("eof", Token::SIZEOF);
+			};
+		case 't':
+			get_next_character();
+			switch(last_character) {
+			case 'a':
+				return possible_keyword("tic", Token::STATIC);
+			case 'r':
+				return possible_keyword("uct", Token::STRUCT);
+			};
+		case 'w':
+			return possible_keyword("itch",Token::SWITCH);
+		}
 	case 't':
 		return possible_keyword("ypedef", Token::TYPEDEF);
+	case 'u':
+		get_next_character();
+		if (last_character == 'n') {
+			get_next_character();
+			switch(last_character) {
+			case 'i':
+				return possible_keyword("on", Token::UNION);
+			case 's':
+				return possible_keyword("igned", Token::UNSIGNED);
+			};
+		}
+	case 'v':
+		get_next_character();
+		if (last_character == 'o') {
+			get_next_character();
+			switch (last_character) {
+			case 'i':
+				return possible_keyword("d", Token::VOID);
+			case 'l':
+				return possible_keyword("atile", Token::VOLATILE);
+			};
+		}
 	case 'w':
 		return possible_keyword("hile", Token::WHILE);
+	case '\'':
+		get_next_character();
+		current_lexeme = "";
+		if (last_character == '\\') {
+			get_next_character();
+		} else if (last_character == '\'') {
+			return new Token(Token::ERROR1, "Empty Character Constant");
+		}
+		get_next_character();
+		if (last_character != '\'')
+			return new Token(Token::ERROR1, "Expects ending single quote mark");
+		line += last_character;
+		consume_character();
+		return new Token(Token::CHAR_CONSTANT, current_lexeme);
+	case '"':
+		get_next_character();
+		current_lexeme = "";
+		while (last_character != '\"') {
+			get_next_character();
+		}
+		line += last_character;
+		consume_character();
+		return new Token(Token::C_STRING, current_lexeme);
 	default:
 		result = find_identifier();
 		if (result != nullptr)
@@ -254,51 +375,108 @@ Token* Scanner::Get_Next_Token()
 			result = find_integer();
 			if (result != nullptr)
 				return result;
-			return new Token(Token::ERROR1, "Unrecognized Token: " + std::to_string(last_character));
+			return new Token(Token::ERROR1, file->file_name + "Unrecognized Token: '" + last_character + '\'');
 		}
 	};
 }
 
 Token* Scanner::process_macro_command() {
+
 	std::string macro_command, follow_up;
+	ignoreWhiteSpaceAndComments();
+
+	if (file->the_file.peek() == '\n')
+		return nullptr;
+
 	file->the_file >> macro_command;
+
 	if (macro_command == "include") {
+
+		//Ignore whitespace between macro command
+		ignoreWhiteSpaceAndComments();
 		last_character = file->the_file.get();
-		while ((last_character == ' ' || last_character == '\t'))
-			last_character = file->the_file.get();
-		if (last_character == '\n')
-			return new Token(Token::ERROR1, "PreProccessor Command: Expects a file name.");
-		if (last_character != 34 && last_character != '<')
-			return new Token(Token::ERROR1, "PreProccessor Command: Unrecongized symbol");
-		file->the_file >> follow_up;
-		if (follow_up[follow_up.length() - 1] != last_character && follow_up[follow_up.length() - 1] != '>')
-			return new Token(Token::ERROR1, "Preproccessor Command: Unrecongized symbol!");
-		follow_up = follow_up.substr(0, follow_up.length() - 1);
-		if (last_character == '<') {
-			file = find_file_in_standard_lib(follow_up);
-		}	else {
-			File_Linked* temp = new File_Linked;
+
+		//Check for delimiter
+		if (last_character != '"' && last_character != '<')
+			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(line_number) + ": error: #include expects \"FILENAME\" or <FILENAME>");
+
+		char ending_delim = (last_character == '"' ? '"' : '>' );
+
+		while ((last_character = file->the_file.get()) != ending_delim && last_character != '\n' && last_character != -1)
+			follow_up += last_character;
+
+		if (last_character != ending_delim)
+			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(line_number) + ": error: missing " + ending_delim + " terminating character");
+
+		File_Linked* temp;
+
+		if (ending_delim == '>') {
+			temp = find_file_in_standard_lib(follow_up);
+			if (temp == nullptr)
+				return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(line_number) + ": error: " + follow_up + ": No such file or directory" );
+			file = temp;
+
+		} else {
+			temp = new File_Linked;
 			temp->the_file.open(follow_up);
+			if (!temp->the_file.is_open())
+				return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(line_number) + ": error: " + follow_up + ": No such file or directory" );
 			temp->next = file;	
 			file = temp;
 		}
+
+	} else if (macro_command == "define") {
+		//Ignore whitespace between macro command
+		ignoreWhiteSpaceAndComments();
+		last_character = file->the_file.get();
+		if (last_character == '\n')
+			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(line_number) + ": error: no macro name given in #define directive");
+
+		if (!isAlpha(last_character))
+			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(line_number) + ": error: macros names must be identifiers");
+
+		find_identifier();
+		ignoreWhiteSpaceAndComments();
+		while ((last_character = file->the_file.get()) != '\n' && last_character != -1)
+			follow_up += last_character;
+		Defined_Macros.insert({current_lexeme,follow_up});
+
+	} else if (macro_command == "undef") {
+
+	} else if (macro_command == "ifdef") {
+
+	} else if (macro_command == "ifndef") {
+
+	} else if (macro_command == "if") {
+
+	} else if (macro_command == "error") {
+
+	} else if (macro_command == "pragma") {
 	}
 	last_character = '\0';
 	return nullptr;
 }
 
+
+Token* Scanner::is_defined_macro(std::string text) {
+	std::unordered_map<std::string,std::string>::const_iterator is_it_a_macro = Defined_Macros.find(current_lexeme);
+	if (is_it_a_macro == Defined_Macros.end())
+		return new Token(Token::IDENTIFIER, current_lexeme);
+	expanding_macro = true;
+	macro_to_be_expanded = is_it_a_macro->second;
+	macro_location = 0;
+	return Get_Next_Token();
+}
+
 Scanner::File_Linked* Scanner::find_file_in_standard_lib(std::string lib_name) {
-	//Windows Case 10
-	std::string path = "/Program Files (x86)/Windows Kits/10/Include/10.0.10150.0/ucrt/" + lib_name;
-	WIN32_FIND_DATA FindFileData;
-	HANDLE fHandle = FindFirstFile(path.c_str(), &FindFileData);
-
+	//Currently only looks in /usr/include/ (Maybe more on this later)
 	File_Linked* temp = new File_Linked;
-	temp->the_file.open(path);
+	temp->file_name = lib_name;
+	temp->the_file.open("/usr/include/" + lib_name);
 	temp->next = file;
-	return temp;
-
-	// No linux/mac Case yet
+	if (temp->the_file.is_open())
+		return temp;
+	return nullptr;
 }
 
 Token* Scanner::find_identifier() {
@@ -306,8 +484,7 @@ Token* Scanner::find_identifier() {
 		while (isAlpha(last_character) || isNumeric(last_character)) {
 			get_next_character();
 		}
-		file->the_file.putback(last_character);
-		return new Token(Token::IDENTIFIER, current_lexeme);
+		return is_defined_macro(current_lexeme);
 	}
 	return nullptr;
 }
@@ -317,7 +494,6 @@ Token* Scanner::find_integer() {
 		while (isNumeric(last_character)) {
 			get_next_character();
 		}
-		file->the_file.putback(last_character);
 		return new Token(Token::INTEGER, current_lexeme);
 	}
 	return nullptr;
@@ -329,10 +505,8 @@ Token* Scanner::check_keyword_identifier(Token::Kind key) {
 		while (isAlpha(last_character) || isNumeric(last_character)) {
 			get_next_character();
 		}
-		file->the_file.putback(last_character);
-		return new Token(Token::IDENTIFIER, current_lexeme);
+		return is_defined_macro(current_lexeme);
 	}
-	file->the_file.putback(last_character);
 	return new Token(key, current_lexeme);
 }
 
@@ -348,7 +522,34 @@ Token* Scanner::possible_keyword(std::string keyword,Token::Kind key) {
 void Scanner::get_next_character() {
 	current_lexeme += last_character;
 	line += last_character;
-	last_character = file->the_file.get();
+
+	if (first_char)
+		first_char = false;
+	else
+		consume_character();
+
+	if (expanding_macro && macro_location != macro_to_be_expanded.length())
+		last_character = macro_to_be_expanded[macro_location];
+	else {
+		expanding_macro = false;
+		last_character = file->the_file.peek();
+	}
+}
+
+void Scanner::consume_character() {
+	if (!expanding_macro)
+		file->the_file.get();
+	else
+		++macro_location;
+}
+
+char Scanner::get_char_no_add() {
+	if (expanding_macro && macro_location != macro_to_be_expanded.length())
+		return macro_to_be_expanded[macro_location++];
+	else {
+		expanding_macro = false;
+		return file->the_file.get();
+	}
 }
 
 bool Scanner::isWhiteSpace(char& c) {
@@ -356,7 +557,7 @@ bool Scanner::isWhiteSpace(char& c) {
 }
 
 bool Scanner::isAlpha(char& c) {
-	return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c == '_';
+	return (c >= 'A' && c <= 'Z') ||(c >= 'a' && c <= 'z') || c == '_';
 }
 
 bool Scanner::isNumeric(char& c) {
@@ -369,6 +570,33 @@ void Scanner::new_line() {
 		if (preprocessed_file.is_open())
 			preprocessed_file << line;
 		line = "";
+	}
+}
+
+void Scanner::ignoreWhiteSpaceAndComments() {
+	char c;
+	while ((c = file->the_file.peek()) == ' ' || c == '\t' || c == '/') {
+		if (c == '/') {
+			last_character = file->the_file.get();
+			if (file->the_file.peek() == '*')
+				ignoreBlockComment();
+			else {
+				file->the_file.putback(last_character);
+				return;
+			}
+		} else
+		last_character = file->the_file.get();
+	}
+}
+
+void Scanner::ignoreBlockComment() {
+	while ((last_character = get_char_no_add()) != -1) {
+		if (last_character == '*') {
+			if ((last_character = get_char_no_add()) == '/')
+				return; //Block Comment Done
+			else if (last_character == -1)
+				return;
+		}
 	}
 }
 

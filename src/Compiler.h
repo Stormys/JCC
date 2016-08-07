@@ -4,7 +4,7 @@
 class Compiler
 {
 public:
-	Compiler();
+	Compiler(std::string&);
 	~Compiler();
 	void Start_compile();
 private:

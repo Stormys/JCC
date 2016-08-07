@@ -1,10 +1,10 @@
 #include "Compiler.h"
 #include <iostream>
 
-Compiler::Compiler()
+Compiler::Compiler(std::string& name)
 {
 //	p = new Parser();
-	s = new Scanner("test1.c",true);
+	s = new Scanner(name,true);
 }
 
 Compiler::~Compiler()
@@ -21,10 +21,12 @@ void Compiler::Start_compile() {
 			break;
 		currentToken = (*s).Get_Next_Token();
 	}
+	delete s;
 }
 
-int main() {
-	Compiler* c = new Compiler();
+int main(int argc, char* argv[]) {
+	std::string hi = "test1.c";
+	Compiler* c = new Compiler(hi);
 	std::cout << "Starting to compile" << std::endl;
 	(*c).Start_compile();
 }
