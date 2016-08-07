@@ -12,6 +12,7 @@
 *.settings
 *.cproject
 *.project
+*.o
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
