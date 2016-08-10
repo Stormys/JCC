@@ -25,7 +25,7 @@ void Compiler::Start_compile() {
 }
 
 int main(int argc, char* argv[]) {
-	std::string hi = "test1.c";
+	std::string hi = "tests/test1.c";
 	Compiler* c = new Compiler(hi);
 	std::cout << "Starting to compile" << std::endl;
 	(*c).Start_compile();

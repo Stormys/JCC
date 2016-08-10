@@ -1,21 +1,22 @@
+/* THis is a test
+    id ont gt this
+
+    Becaue life is  short */
+#define FOUR! 4
+#define EOF 5 + FOUR
 int main() {
-   char* = "hell"; // int x= 4
-    inc *= 2;
+    int x = EOF;
+    double inc = 2;
     /* hello*/return 0;
 } 
-/* mistakes happen */
+/* mistakes happen 
+   lmao
 
 
+*/
+#ifdef EOF
 void food();
-
 void WEEE() {
-    switch(9) {
-    short
-    case 'f':
-        return 4 + 4;
-    case 'h':
-        break;
-    default:
-        return 0;
-    };
 }
+#endif 
+#error
