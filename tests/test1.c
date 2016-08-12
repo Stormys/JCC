@@ -1,22 +1,14 @@
-/* THis is a test
-    id ont gt this
-
-    Becaue life is  short */
-#define FOUR! 4
-#define EOF 5 + FOUR
+#define MEN(d) d;
 int main() {
-    int x = EOF;
-    double inc = 2;
-    /* hello*/return 0;
+    MEN
+    printf("Hello");
+    return 0;
 } 
 /* mistakes happen 
    lmao
 
 
 */
-#ifdef EOF
+#ifdef MEN
 void food();
-void WEEE() {
-}
-#endif 
-#error
+#endif

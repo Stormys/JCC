@@ -2,6 +2,7 @@
 #include "Token.h"
 #include <fstream>
 #include <unordered_map>
+#include <vector>
 #include <iostream>
 
 class Scanner
@@ -12,24 +13,31 @@ public:
 	Token* Get_Next_Token();
 	int get_line_number();
 private:
+	struct If_Tree_PreProcessor {
+		std::string macro;
+		If_Tree_PreProcessor* next;
+		int line_number;
+		bool is_it_true;
+	};
+
 	struct File_Linked {
 		std::ifstream the_file;
 		std::string file_name;
 		int line_number = 1;
 		File_Linked* next = nullptr;
+		If_Tree_PreProcessor* ifs = nullptr;
+	};
+
+	struct Macro_Info {
+		std::string expanded_form;
+		std::vector<std::string> params;
+		bool function_macro = false;
 	};
 
 	struct Expanded_Macro {
 		std::string macro_to_be_expanded;
 		int macro_location;
 		Expanded_Macro* next;
-	};
-
-	struct If_Tree_PreProcessor {
-		std::string macro;
-		If_Tree_PreProcessor* next;
-		int line_number;
-		bool is_it_true;
 	};
 
 	static bool isWhiteSpace(char& c);
@@ -59,13 +67,13 @@ private:
 	Token* extra_tokens_macro_command(const std::string&);
 
 	File_Linked * find_file_in_standard_lib(std::string);
-	std::unordered_map<std::string, std::string> Defined_Macros = {};
+	std::unordered_map<std::string, Macro_Info*> Defined_Macros = {};
 	Token* is_defined_macro(std::string);
 	Token* parse_for_macro_identifier(std::string);
 	Token* skipping_lines_until_endif(const std::string&);
+	std::string obtain_follow_up_defined_macro();
 
 	Expanded_Macro* macro = nullptr;
-	If_Tree_PreProcessor* ifs = nullptr;
 
 	std::string file_name;
 	File_Linked* file;
