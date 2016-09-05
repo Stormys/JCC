@@ -1,11 +1,10 @@
-defineMEN(d
+includevoid what_is_up();
+
+defineMEN(dc
 int main() {
-    MEN
+    MEN(45d4 + c5; 
     printf("Hello");
     return 0;
 } 
  
-ifdefMEN
-void food();
-endif
-
+void ifood();

@@ -1,6 +1,7 @@
-#define MEN(d) d;
+#include "tests/test2.c"
+#define MEN(d,c) d + c;
 int main() {
-    MEN
+    MEN(4,5) 
     printf("Hello");
     return 0;
 } 
@@ -9,6 +10,4 @@ int main() {
 
 
 */
-#ifdef MEN
-void food();
-#endif
+void ifood();

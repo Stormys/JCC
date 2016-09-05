@@ -275,6 +275,7 @@ Token* Scanner::Get_Next_Token()
 				};
 			}
 		};
+		return find_identifier();
 	case 'd':
 		get_next_character();
 		switch(last_character) {
@@ -290,8 +291,8 @@ Token* Scanner::Get_Next_Token()
 			file->the_file.putback(last_character);
 			last_character = 'o';
 			return check_keyword_identifier(Token::DO);
-
 		};
+		return find_identifier();
 	case 'e':
 		get_next_character();
 		switch(last_character) {
@@ -302,6 +303,7 @@ Token* Scanner::Get_Next_Token()
 		case 'x':
 			return possible_keyword("tern",Token::EXTERN);
 		};
+		return find_identifier();
 	case 'f':
 		get_next_character();
 		switch(last_character) {
@@ -310,6 +312,7 @@ Token* Scanner::Get_Next_Token()
 		case 'o':
 			return possible_keyword("r", Token::FOR);
 		};
+		return find_identifier();
 	case 'g':
 		return possible_keyword("oto", Token::GOTO);
 	case 'l':
@@ -322,6 +325,7 @@ Token* Scanner::Get_Next_Token()
 		case 'n':
 			return possible_keyword("t",Token::INT);
 		};
+		return find_identifier();
 	case 'r':
 		get_next_character();
 		if (last_character == 'e') {
@@ -333,6 +337,7 @@ Token* Scanner::Get_Next_Token()
 				return possible_keyword("ister",Token::REGISTER);
 			};
 		}
+		return find_identifier();
 	case 's':
 		get_next_character();
 		switch(last_character) {
@@ -346,6 +351,7 @@ Token* Scanner::Get_Next_Token()
 			case 'z':
 				return possible_keyword("eof", Token::SIZEOF);
 			};
+			return find_identifier();
 		case 't':
 			get_next_character();
 			switch(last_character) {
@@ -354,6 +360,7 @@ Token* Scanner::Get_Next_Token()
 			case 'r':
 				return possible_keyword("uct", Token::STRUCT);
 			};
+			return find_identifier();
 		case 'w':
 			return possible_keyword("itch",Token::SWITCH);
 		}
@@ -370,6 +377,7 @@ Token* Scanner::Get_Next_Token()
 				return possible_keyword("igned", Token::UNSIGNED);
 			};
 		}
+		return find_identifier();
 	case 'v':
 		get_next_character();
 		if (last_character == 'o') {
@@ -381,6 +389,7 @@ Token* Scanner::Get_Next_Token()
 				return possible_keyword("atile", Token::VOLATILE);
 			};
 		}
+		return find_identifier();
 	case 'w':
 		return possible_keyword("hile", Token::WHILE);
 	case '\'':
@@ -648,14 +657,45 @@ Token* Scanner::parse_for_macro_identifier(std::string macro) {
 
 Token* Scanner::is_defined_macro(std::string text) {
 	std::unordered_map<std::string,Macro_Info*>::const_iterator is_it_a_macro = Defined_Macros.find(current_lexeme);
-	if (is_it_a_macro == Defined_Macros.end())
+	if (macro != nullptr && macro ->param_names.size() != 0) {
+		int  i = std::find(macro->param_names.begin(),macro->param_names.end(),current_lexeme) - macro->param_names.begin();
+		if (i < macro -> param_names.size()) {
+			Expanded_Macro* temp = new Expanded_Macro;
+			temp->macro_to_be_expanded = macro->param_values.at(i);
+			temp -> macro_location = 0;
+			temp -> next = macro;
+			macro = temp;
+			return Get_Next_Token();
+		}
+	}
+	if (is_it_a_macro == Defined_Macros.end()) {
 		return new Token(Token::IDENTIFIER, current_lexeme);
+	}
 	if (is_it_a_macro -> second -> function_macro && last_character != '(')
 		return new Token(Token::IDENTIFIER, current_lexeme);
 	Expanded_Macro* temp = new Expanded_Macro;
 	temp->macro_to_be_expanded = is_it_a_macro->second->expanded_form;
 	temp -> macro_location = 0;
 	temp -> next = macro;
+	if (is_it_a_macro -> second -> function_macro) {
+		get_next_character();
+		current_lexeme = "";
+		temp ->param_names = is_it_a_macro -> second -> params;
+		while (last_character != ')') {
+			if (last_character == ',') {
+				temp ->param_values.insert(temp->param_values.end(),current_lexeme);
+				current_lexeme = "";
+				consume_character();
+				get_next_character2();
+			} else
+				get_next_character();
+		}
+		if (current_lexeme.size() != 0 && temp->param_names.size() != 0)
+			temp -> param_values.insert(temp->param_values.end(),current_lexeme);
+		consume_character();
+		if (temp->param_values.size() != temp->param_names.size())
+			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(get_line_number()) + ": error: macro \"" + text + "\" requires " + std::to_string(temp->param_names.size()) + " arguments, but only " + std::to_string(temp->param_values.size()) + " was given" );
+	}
 	macro = temp;
 	return Get_Next_Token();
 }

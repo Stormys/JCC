@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <vector>
 #include <iostream>
+#include <algorithm>
 
 class Scanner
 {
@@ -37,6 +38,8 @@ private:
 	struct Expanded_Macro {
 		std::string macro_to_be_expanded;
 		int macro_location;
+		std::vector<std::string> param_names;
+		std::vector<std::string> param_values;
 		Expanded_Macro* next;
 	};
 
