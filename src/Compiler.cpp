@@ -25,8 +25,11 @@ void Compiler::Start_compile() {
 }
 
 int main(int argc, char* argv[]) {
-	std::string hi = "tests/test1.c";
-	Compiler* c = new Compiler(hi);
-	std::cout << "Starting to compile" << std::endl;
-	(*c).Start_compile();
+	std::string s(argv[1],std::strlen(argv[1]));
+	try {
+		Compiler* c = new Compiler(s);
+		(*c).Start_compile();
+	} catch (std::ios_base::failure e) {
+		std::cout << e.what() << std::endl;
+	}
 }

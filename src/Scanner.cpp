@@ -4,8 +4,15 @@
 Scanner::Scanner(std::string& file_name_param)
 {
 	file_name = file_name_param;
+	int local_path_index = file_name_param.find_last_of('/');
+	if (local_path_index != -1)
+		local_path = file_name_param.substr(0,local_path_index) + '/';
+	else
+		local_path = "";
 	File_Linked* temp = new File_Linked;
 	temp->the_file.open(file_name, std::ios::in);
+	if (!temp->the_file)
+		throw std::ios_base::failure("Error no such file or directory: " + file_name_param);
 	temp->file_name = file_name;
 	file = temp;
 }
@@ -459,9 +466,9 @@ Token* Scanner::process_macro_command() {
 
 		} else {
 			temp = new File_Linked;
-			temp->the_file.open(follow_up);
+			temp->the_file.open(local_path + follow_up);
 			if (!temp->the_file.is_open())
-				return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(get_line_number()) + ": error: " + follow_up + ": No such file or directory" );
+				return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(macro_line_number) + ": error: " + follow_up + ": No such file or directory");
 			temp->next = file;	
 			file = temp;
 		}

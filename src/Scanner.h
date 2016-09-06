@@ -89,4 +89,5 @@ private:
 	char last_character = '\0';
 	std::string current_lexeme = "";
 	bool first_char = false;
+	std::string local_path;
 };                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
