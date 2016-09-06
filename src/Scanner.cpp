@@ -1,37 +1,30 @@
 #include "Scanner.h"
+#include "PreProcessorEval.cpp"
 
-Scanner::Scanner(std::string& file_name_param, bool write_preprocessed_file)
+Scanner::Scanner(std::string& file_name_param)
 {
 	file_name = file_name_param;
 	File_Linked* temp = new File_Linked;
 	temp->the_file.open(file_name, std::ios::in);
 	temp->file_name = file_name;
 	file = temp;
-	if (write_preprocessed_file)
-		preprocessed_file.open(file_name.substr(0,file_name.length() - 1) + "i",std::ios::out);
 }
 
 Scanner::~Scanner()
 {
 	file->the_file.close();
-	preprocessed_file.close();
 }
 
 void Scanner::get_first_non_whitespace_character() {
-	while (last_character != -1 && isWhiteSpace(last_character = get_char_no_add())) {
-		line += last_character;
-	}
+	while (last_character != -1 && isWhiteSpace(last_character = get_char_no_add()));
 }
 
 Token* Scanner::Get_Next_Token()
 {
 	Token* result;
-	//Adds to line if its a one character token from last time
-	if (current_lexeme.length() == 0 && last_character != '\0')
-		line += last_character;
-	else //else reset
-		current_lexeme = "";
+	current_lexeme = "";
 
+	// Checks if tree for a false if to skip
 	if (file->ifs != nullptr && !file->ifs->is_it_true) {
 		if ((result = skipping_lines_until_endif(file->ifs->macro)) != nullptr)
 			return result;
@@ -42,9 +35,6 @@ Token* Scanner::Get_Next_Token()
 
 	//End of File
 	if (last_character == -1) {
-		if (preprocessed_file.is_open())
-			preprocessed_file << line;
-
 		while (file->ifs != nullptr) {
 			If_Tree_PreProcessor* temp = file->ifs;
 			file->ifs = file->ifs->next;
@@ -55,7 +45,6 @@ Token* Scanner::Get_Next_Token()
 		if (file->next == nullptr)
 			return new Token(Token::E0F, "-1");
 
-		line = "";
 		file = file->next;
 		last_character = '\0';
 
@@ -139,15 +128,12 @@ Token* Scanner::Get_Next_Token()
 			return new Token(Token::DIVASSIGN, "/=");
 
 		case '/': //Line Comment
-			while ((last_character = get_char_no_add()) != '\n' && last_character != -1);
-			line[line.length() - 1] = ' ';
-			if (last_character != -1)
-				line += last_character;
-			new_line();
+			while ((last_character = get_char_no_add()) != '\n' && last_character != -1)
+				if (last_character == '\\')
+					backslash_ignore();
 			return Get_Next_Token();
 
 		case '*': //Block Comment
-			line[line.length() - 1] = ' ';
 			ignoreBlockComment();
 			if (last_character == -1)
 				return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(get_line_number()) + ": error: unterminated comment");
@@ -156,10 +142,8 @@ Token* Scanner::Get_Next_Token()
 			return new Token(Token::DIVIDE, "/");
 		};
 	case '\\':
-		if (file->the_file.get() == '\n')
-			last_character == file->the_file.get();
-		else
-			return new Token(Token::ERROR1,"Found \\, expect a new line afterwords");
+		get_next_character();
+		backslash_ignore();
 		return Get_Next_Token();
 	case '%':
 		get_next_character();
@@ -403,7 +387,6 @@ Token* Scanner::Get_Next_Token()
 		get_next_character();
 		if (last_character != '\'')
 			return new Token(Token::ERROR1, "Expects ending single quote mark");
-		line += last_character;
 		consume_character();
 		return new Token(Token::CHAR_CONSTANT, current_lexeme);
 	case '"':
@@ -412,7 +395,6 @@ Token* Scanner::Get_Next_Token()
 		while (last_character != '\"') {
 			get_next_character();
 		}
-		line += last_character;
 		consume_character();
 		return new Token(Token::C_STRING, current_lexeme);
 	default:
@@ -445,6 +427,8 @@ Token* Scanner::process_macro_command() {
 	}
 	macro_command = current_lexeme;
 	current_lexeme = "";
+	
+	int macro_line_number = get_line_number();
 
 	if (macro_command == "include") {
 
@@ -465,7 +449,7 @@ Token* Scanner::process_macro_command() {
 			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(get_line_number()) + ": error: missing " + ending_delim + " terminating character");
 
 		File_Linked* temp;
-		result = extra_tokens_macro_command(macro_command);
+		result = extra_tokens_macro_command(macro_command,macro_line_number);
 
 		if (ending_delim == '>') {
 			temp = find_file_in_standard_lib(follow_up);
@@ -485,7 +469,7 @@ Token* Scanner::process_macro_command() {
 		return result;
 
 	} else if (macro_command == "define") {
-		if ((result = parse_for_macro_identifier("define")) != nullptr)
+		if ((result = parse_for_macro_identifier("define",macro_line_number)) != nullptr)
 			return result;
 
 		std::string macro_name = current_lexeme;
@@ -502,38 +486,38 @@ Token* Scanner::process_macro_command() {
 					get_next_character2();
 					current_lexeme = "";
 					if (find_identifier() == nullptr)
-						return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(get_line_number()) + ": error: Invalid symbol in macro parameter list. Expects an identifier");
+						return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(macro_line_number) + ": error: Invalid symbol in macro parameter list. Expects an identifier");
 					temp ->params.insert(temp->params.end(),current_lexeme);
 					ignoreWhiteSpaceAndComments();
 					get_next_character2();
 					consume_character();
 				} while (last_character == ',' );
 			} if (last_character != ')') {
-				extra_tokens_macro_command(macro_command);
-				return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(get_line_number()) + ": error: Invalid symbol in macro parameter list. Expects an identifier");
+				extra_tokens_macro_command(macro_command,macro_line_number);
+				return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(macro_line_number) + ": error: Invalid symbol in macro parameter list. Expects an identifier");
 			}
 		}
 		last_character = file->the_file.peek();
-		if (!isWhiteSpace(last_character))
-			result = new Token(Token::WARNING,file->file_name + ":" + std::to_string(get_line_number()) + ": warning: missing whitespace after the macro name (enabled)");
+		if (!isWhiteSpace(last_character) && last_character != '\\')
+			result = new Token(Token::WARNING,file->file_name + ":" + std::to_string(macro_line_number) + ": warning: missing whitespace after the macro name (enabled)");
 
 		follow_up = obtain_follow_up_defined_macro();
 		temp -> expanded_form = follow_up;
 
 		if (Defined_Macros.find(macro_name) != Defined_Macros.end()) {
 			Defined_Macros[macro_name] = temp;
-			return new Token(Token::WARNING, file->file_name + ":" + std::to_string(get_line_number()) + ": warning: \"" + macro_name + "\" redefined" );
+			return new Token(Token::WARNING, file->file_name + ":" + std::to_string(macro_line_number) + ": warning: \"" + macro_name + "\" redefined" );
 		}
 		Defined_Macros.insert({macro_name,temp});
 		return result;
 
 	} else if (macro_command == "undef") {
-		if ((result = parse_for_macro_identifier("undef")) != nullptr)
+		if ((result = parse_for_macro_identifier("undef",macro_line_number)) != nullptr)
 			return result;
 		Defined_Macros.erase(current_lexeme);
 
 	} else if (macro_command == "ifdef") {
-		if ((result = parse_for_macro_identifier("ifdef")) != nullptr)
+		if ((result = parse_for_macro_identifier("ifdef",macro_line_number)) != nullptr)
 			return result;
 
 		If_Tree_PreProcessor* temp = new If_Tree_PreProcessor;
@@ -544,7 +528,7 @@ Token* Scanner::process_macro_command() {
 		file->ifs = temp;
 
 	} else if (macro_command == "ifndef") {
-		if ((result = parse_for_macro_identifier("ifndef")) != nullptr)
+		if ((result = parse_for_macro_identifier("ifndef",macro_line_number)) != nullptr)
 			return result;
 
 		If_Tree_PreProcessor* temp = new If_Tree_PreProcessor;
@@ -560,15 +544,23 @@ Token* Scanner::process_macro_command() {
 		file->ifs = file->ifs -> next;
 
 	} else if (macro_command == "if") {
+		ignoreWhiteSpaceAndComments();
+		if ((last_character= file->the_file.peek())  == '\n')
+			return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(get_line_number()) + ": error expected value in expression");
 		If_Tree_PreProcessor* temp = new If_Tree_PreProcessor;
 		temp->macro = "if";
 		temp->line_number = get_line_number();
 		temp->next = file->ifs;
-		temp->is_it_true = true;
+		temp->is_it_true = run_eval(obtain_follow_up_defined_macro());
 		file->ifs = temp;
 
+	} else if (macro_command == "elif") {
+		if (file->ifs == nullptr)
+			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(get_line_number()) + ": error #elif without #if");
 	} else if (macro_command == "else") {
-
+		if (file->ifs == nullptr)
+			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(get_line_number()) + ": error #else without #if");
+		file->ifs->is_it_true = !file->ifs->is_it_true;
 	} else if (macro_command == "error") {
 		ignoreWhiteSpaceAndComments();
 		while ((last_character = file->the_file.get()) != '\n' && last_character != -1) {
@@ -576,31 +568,53 @@ Token* Scanner::process_macro_command() {
 				ignoreWhiteSpaceAndComments();
 			follow_up += last_character;
 		}
-		return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(get_line_number()) + ": #error " + follow_up);
+		return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(macro_line_number) + ": #error " + follow_up);
 	} else if (macro_command == "pragma") {
 	} else
-		return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(get_line_number()) + ": error: invalid preprocessing directive #" + macro_command);
-	return extra_tokens_macro_command(macro_command);
+		return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(macro_line_number) + ": error: invalid preprocessing directive #" + macro_command);
+	return extra_tokens_macro_command(macro_command,macro_line_number);
+}
+
+bool Scanner::process_if_statement() {
+	ignoreWhiteSpaceAndComments();
+	std::string buffer = ""; 
+	while(last_character != '\n' && last_character != -1) {
+		Token* temp = Get_Next_Token();
+		if (temp->get_lexeme() == "defined") {
+			ignoreWhiteSpaceAndComments();
+			Get_Next_Token()->get_lexeme();
+			get_char_no_add();
+			ignoreWhiteSpaceAndComments();
+			find_identifier_str();
+			buffer += (Defined_Macros.find(current_lexeme) == Defined_Macros.end() ? '0' : '1');
+			ignoreWhiteSpaceAndComments();
+			Get_Next_Token();
+			get_next_character();
+		} else {
+			buffer += temp->get_lexeme();
+		}
+	}
+	return run_eval(buffer);
 }
 
 std::string Scanner::obtain_follow_up_defined_macro() {
 	std::string follow_up;
 	ignoreWhiteSpaceAndComments();
 
-	while ((last_character = file->the_file.get()) != '\n' && last_character != -1)
-	if (!possibleCommentLetsIgnoreIt())
-		follow_up += last_character;
-
+	while ((last_character = file->the_file.get()) != '\n' && last_character != -1) {
+		if (!possibleCommentLetsIgnoreIt())
+			follow_up += last_character;
+	}
 	file->the_file.unget();
 	return follow_up;
 }
 
-Token* Scanner::extra_tokens_macro_command(const std::string& macro_command) {
+Token* Scanner::extra_tokens_macro_command(const std::string& macro_command,int x) {
 	ignoreWhiteSpaceAndComments();
 	if (file->the_file.peek() != '\n') {
 		while ((last_character = file->the_file.get()) != '\n' && last_character != -1);
 		file->the_file.unget();
-		return new Token(Token::WARNING,file->file_name + ":" + std::to_string(get_line_number()) + ": warning: extra tokens at end of #" + macro_command + " directive (ignoring these tokens)");
+		return new Token(Token::WARNING,file->file_name + ":" + std::to_string(x) + ": warning: extra tokens at end of #" + macro_command + " directive (ignoring these tokens)");
 	}
 	return nullptr;
 }
@@ -612,7 +626,7 @@ Token* Scanner::skipping_lines_until_endif(const std::string& macro) {
 			new_line();
 			ignoreWhiteSpaceAndComments();
 			if ((last_character = file->the_file.get()) == '#') {
-				if ((result = parse_for_macro_identifier("endif")) == nullptr) {
+				if ((result = parse_for_macro_identifier("endif",4)) == nullptr) {
 					if (current_lexeme == "endif"){
 						file->ifs = file->ifs -> next;
 						current_lexeme = "";
@@ -625,6 +639,10 @@ Token* Scanner::skipping_lines_until_endif(const std::string& macro) {
 						temp->line_number = get_line_number();
 						temp->is_it_true = false;
 						file->ifs = temp;
+					} else if (current_lexeme == "else") {
+						file->ifs->is_it_true = true;
+						current_lexeme = "";
+						return nullptr;
 					}
 					current_lexeme = "";
 					continue;
@@ -638,13 +656,13 @@ Token* Scanner::skipping_lines_until_endif(const std::string& macro) {
 }
 
 
-Token* Scanner::parse_for_macro_identifier(std::string macro) {
+Token* Scanner::parse_for_macro_identifier(std::string macro,int line_num) {
 	ignoreWhiteSpaceAndComments();
 	last_character = file->the_file.peek();
 	if (last_character == '\n')
-		return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(get_line_number()) + ": error: no macro name given in #" + macro + " directive");
+		return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(line_num) + ": error: no macro name given in #" + macro + " directive");
 	if (!isAlpha(last_character))
-		return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(get_line_number()) + ": error: macros names must be identifiers");
+		return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(line_num) + ": error: macros names must be identifiers");
 
 	first_char = false;
 	if (current_lexeme.size() != 0 || isAlpha(last_character)) {
@@ -721,6 +739,15 @@ Token* Scanner::find_identifier() {
 	return nullptr;
 }
 
+void Scanner::find_identifier_str() {
+	if (current_lexeme.size() != 0 || isAlpha(last_character)) {
+		while (isAlpha(last_character) || isNumeric(last_character)) {
+			get_next_character();
+		}
+		return;
+	}
+}
+
 Token* Scanner::find_integer() {
 	if (isNumeric(last_character)) {
 		while (isNumeric(last_character) || last_character == 'E' || last_character == 'e') {
@@ -753,7 +780,6 @@ Token* Scanner::possible_keyword(std::string keyword,Token::Kind key) {
 
 void Scanner::get_next_character() {
 	current_lexeme += last_character;
-	line += last_character;
 
 	if (first_char)
 		first_char = false;
@@ -785,7 +811,7 @@ char Scanner::get_char_no_add() {
 		return macro->macro_to_be_expanded[macro->macro_location++];
 	} else if (macro != nullptr) {
 		macro = macro->next;
-		get_char_no_add();
+		return get_char_no_add();
 	} else {
 		last_character = file->the_file.get();
 		if (last_character == '\n')
@@ -808,14 +834,11 @@ bool Scanner::isNumeric(char& c) {
 
 void Scanner::new_line() {
 	file->line_number++;
-	if (preprocessed_file.is_open())
-		preprocessed_file << line;
-	line = "";
 }
 
 void Scanner::ignoreWhiteSpaceAndComments() {
 	char c;
-	while ((c = file->the_file.peek()) == ' ' || c == '\t' || c == '/') {
+	while ((c = file->the_file.peek()) == ' ' || c == '\t' || c == '/' || c == '\\') {
 		if (c == '/') {
 			last_character = file->the_file.get();
 			if (file->the_file.peek() == '*')
@@ -824,8 +847,10 @@ void Scanner::ignoreWhiteSpaceAndComments() {
 				file->the_file.putback(last_character);
 				return;
 			}
+		} else if (c == '\\') {
+			backslash_ignore();
 		} else
-		last_character = file->the_file.get();
+			last_character = file->the_file.get();
 	}
 }
 
@@ -839,6 +864,10 @@ bool Scanner::possibleCommentLetsIgnoreIt() {
 			ignoreBlockComment();
 			last_character = ' ';
 		}
+	   
+	} else if (last_character == '\\') {
+		backslash_ignore();
+		last_character = ' ';
 	}
 	return false;
 }
@@ -852,6 +881,10 @@ void Scanner::ignoreBlockComment() {
 				return;
 		}
 	}
+}
+
+void Scanner::backslash_ignore() {
+	while((last_character = get_char_no_add()) != '\n' && last_character != -1);
 }
 
 int Scanner::get_line_number() {

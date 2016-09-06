@@ -9,7 +9,7 @@
 class Scanner
 {
 public:
-	Scanner(std::string& file_name_param, bool);
+	Scanner(std::string& file_name_param);
 	~Scanner();
 	Token* Get_Next_Token();
 	int get_line_number();
@@ -33,6 +33,9 @@ private:
 		std::string expanded_form;
 		std::vector<std::string> params;
 		bool function_macro = false;
+
+		Macro_Info(){}
+		Macro_Info(std::string hi):expanded_form(hi){}
 	};
 
 	struct Expanded_Macro {
@@ -49,13 +52,13 @@ private:
 
 	void ignoreWhiteSpaceAndComments(); //Ignores tabs and spaces and comments but not new line
 
-	void ignoreBlockComment();
+	void ignoreBlockComment(); // Ignore Block comments
 
 	bool possibleCommentLetsIgnoreIt();
 
-	void get_next_character();
-	void get_next_character2();
-	void consume_character();
+	void get_next_character(); //Adds character to buffer if necessary
+	void get_next_character2(); //Actually gets character
+	void consume_character(); //Consumes character
 
 	void get_first_non_whitespace_character();
 
@@ -67,22 +70,23 @@ private:
 	Token* check_keyword_identifier(Token::Kind);
 	Token* possible_keyword(std::string,Token::Kind);
 	Token* process_macro_command();
-	Token* extra_tokens_macro_command(const std::string&);
+	Token* extra_tokens_macro_command(const std::string&,int);
 
 	File_Linked * find_file_in_standard_lib(std::string);
-	std::unordered_map<std::string, Macro_Info*> Defined_Macros = {};
+	std::unordered_map<std::string, Macro_Info*> Defined_Macros{ {"__GNUC__",new Macro_Info("4")}, {"__GNUC_MINOR__",new Macro_Info("2")}};
 	Token* is_defined_macro(std::string);
-	Token* parse_for_macro_identifier(std::string);
+	Token* parse_for_macro_identifier(std::string,int);
 	Token* skipping_lines_until_endif(const std::string&);
 	std::string obtain_follow_up_defined_macro();
+	void find_identifier_str();
+	void backslash_ignore();
+	bool process_if_statement();
 
 	Expanded_Macro* macro = nullptr;
 
 	std::string file_name;
 	File_Linked* file;
-	std::ofstream preprocessed_file;
 	char last_character = '\0';
 	std::string current_lexeme = "";
-	std::string line;
 	bool first_char = false;
 };                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        

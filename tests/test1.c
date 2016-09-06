@@ -1,13 +1,16 @@
-#include "tests/test2.c"
-#define MEN(d,c) d + c;
-int main() {
-    MEN(4,5) 
-    printf("Hello");
-    return 0;
-} 
-/* mistakes happen 
-   lmao
-
-
-*/
-void ifood();
+//ONE TWO  \
+lol
+#define B int x = \
+	4;
+#define C(\
+		x,y\
+		)\
+		int c = x;
+#if 1
+int main(int argc, char* argv[])  	{
+	return 0;
+}
+#endif \
+what
+#error \
+HELL

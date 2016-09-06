@@ -4,7 +4,7 @@
 Compiler::Compiler(std::string& name)
 {
 //	p = new Parser();
-	s = new Scanner(name,true);
+	s = new Scanner(name);
 }
 
 Compiler::~Compiler()
