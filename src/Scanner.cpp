@@ -405,7 +405,7 @@ Token* Scanner::Get_Next_Token()
 			result = find_integer();
 			if (result != nullptr)
 				return result;
-			return new Token(Token::ERROR1, file->file_name + "Unrecognized Token: '" + last_character + '\'');
+			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(get_line_number()) + ": error: Unable able to tokenize : " + last_character);
 		}
 	};
 }
