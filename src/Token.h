@@ -1,5 +1,6 @@
-#include<string>
-#pragma once
+#ifndef TOKEN_H
+#define TOKEN_H
+#include <string>
 class Token
 {
 public:
@@ -23,3 +24,4 @@ private:
 	std::string lexeme;
 	Kind kind;
 };
+#endif

@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Token.h"
 #include <fstream>
 #include <unordered_map>
@@ -93,4 +94,7 @@ private:
 	bool first_char = false;
 	bool first_char_in_line = true;
 	std::string local_path;
+
+	std::vector<Token::Kind> preprocessor_if_tokens{Token::INTEGER, Token::LOGICAL_NOT, Token::LOGICAL_OR, Token::LOGICAL_AND, Token::LESS_THAN,Token::LESS_THAN_EQUAL, \
+	Token::GREATER_THAN, Token::GREATER_THAN_EQUAL, Token::BINARY_LEFT_SHIFT, Token::BINARY_RIGHT_SHIFT};
 };                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        

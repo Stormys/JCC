@@ -1,4 +1,3 @@
-#pragma once
 #include "Token.h"
 #include <unordered_set>
 class NonTerminal

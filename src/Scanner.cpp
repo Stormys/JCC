@@ -37,6 +37,7 @@ Token* Scanner::Get_Next_Token()
 	while (file->ifs != nullptr && !file->ifs->is_it_true) {
 		if ((result = skipping_lines_until_endif(file->ifs->macro)) != nullptr)
 			return result;
+		current_lexeme = "";
 	}
 
 	//Ignoring whitespace and adding them to line
@@ -565,7 +566,7 @@ Token* Scanner::process_macro_command(bool all_macros) {
 		if ((last_character= file->the_file.peek())  == '\n')
 			return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(get_line_number()) + ": error expected value in expression");
 		
-		bool truth = run_eval(obtain_follow_up_defined_macro());
+		bool truth = process_if_statement();
 		If_Tree_PreProcessor* temp = new If_Tree_PreProcessor;
 		temp->macro = "if";
 		temp->line_number = get_line_number();
@@ -580,13 +581,12 @@ Token* Scanner::process_macro_command(bool all_macros) {
 		ignoreWhiteSpaceAndComments();
 		if ((last_character = file->the_file.peek()) == '\n')
 			return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(macro_line_number) + ": error expected value in expression");
-		std::string temp = obtain_follow_up_defined_macro();
+		bool truth = process_if_statement();
 		if (file->ifs->ran_else)
 			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(macro_line_number) + ": error #elif after #else");
 		if (file->ifs->else_case) {
 			file->ifs->is_it_true = false;
 		} else {
-			bool truth = run_eval(temp);
 			file->ifs->is_it_true = truth;
 			file->ifs->else_case = truth;
 		}
@@ -619,20 +619,10 @@ bool Scanner::process_if_statement() {
 	std::string buffer = ""; 
 	while(last_character != '\n' && last_character != -1) {
 		Token* temp = Get_Next_Token();
-		if (temp->get_lexeme() == "defined") {
-			ignoreWhiteSpaceAndComments();
-			Get_Next_Token()->get_lexeme();
-			get_char_no_add();
-			ignoreWhiteSpaceAndComments();
-			find_identifier_str();
-			buffer += (Defined_Macros.find(current_lexeme) == Defined_Macros.end() ? '0' : '1');
-			ignoreWhiteSpaceAndComments();
-			Get_Next_Token();
-			get_next_character();
-		} else {
+		if (std::find(preprocessor_if_tokens.begin(),preprocessor_if_tokens.end(),temp->get_kind()) != preprocessor_if_tokens.end())
 			buffer += temp->get_lexeme();
-		}
-	}
+	}		
+	std::cout << buffer << std::endl;
 	return run_eval(buffer);
 }
 

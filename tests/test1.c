@@ -1,13 +1,9 @@
-#if 1
-int x = 4; 
-#include "test2.c"
+#if 4 <  0
 int main(int argc, char* argv[])  	{
 	return 0;
 }
 #else
-#ifdef ONE
-void main() {
+int main() {
 	return 1;
 }
-#endif
 #endif
