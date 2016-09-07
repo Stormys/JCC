@@ -71,7 +71,7 @@ private:
 	Token* find_integer();
 	Token* check_keyword_identifier(Token::Kind);
 	Token* possible_keyword(std::string,Token::Kind);
-	Token* process_macro_command();
+	Token* process_macro_command(bool);
 	Token* extra_tokens_macro_command(const std::string&,int);
 
 	File_Linked * find_file_in_standard_lib(std::string);

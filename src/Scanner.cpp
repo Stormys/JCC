@@ -62,7 +62,7 @@ Token* Scanner::Get_Next_Token()
 
 	switch (last_character) {
 	case '#': //PreProccessor Macro Commands
-		result = process_macro_command();
+		result = process_macro_command(true);
 		if (result != nullptr)
 			return result;
 		return Get_Next_Token();
@@ -417,10 +417,11 @@ Token* Scanner::Get_Next_Token()
 	};
 }
 
-Token* Scanner::process_macro_command() {
+Token* Scanner::process_macro_command(bool all_macros) {
 
 	std::string macro_command, follow_up;
 	Token* result = nullptr;
+	current_lexeme = "";
 	ignoreWhiteSpaceAndComments();
 
 	if ((last_character = file->the_file.peek()) == '\n')
@@ -433,11 +434,10 @@ Token* Scanner::process_macro_command() {
 		}
 	}
 	macro_command = current_lexeme;
-	current_lexeme = "";
-	
+
 	int macro_line_number = get_line_number();
 
-	if (macro_command == "include") {
+	if (all_macros && macro_command == "include") {
 
 		//Ignore whitespace between macro command
 		ignoreWhiteSpaceAndComments();
@@ -475,7 +475,7 @@ Token* Scanner::process_macro_command() {
 		last_character = '\0';
 		return result;
 
-	} else if (macro_command == "define") {
+	} else if (all_macros && macro_command == "define") {
 		if ((result = parse_for_macro_identifier("define",macro_line_number)) != nullptr)
 			return result;
 
@@ -518,7 +518,7 @@ Token* Scanner::process_macro_command() {
 		Defined_Macros.insert({macro_name,temp});
 		return result;
 
-	} else if (macro_command == "undef") {
+	} else if (all_macros && macro_command == "undef") {
 		if ((result = parse_for_macro_identifier("undef",macro_line_number)) != nullptr)
 			return result;
 		Defined_Macros.erase(current_lexeme);
@@ -533,7 +533,7 @@ Token* Scanner::process_macro_command() {
 		temp->macro = "ifdef";
 		temp->next = file->ifs;
 		temp->line_number = get_line_number();
-		temp->is_it_true = truth;
+		temp->is_it_true = (all_macros ? truth : false);
 		temp->else_case = truth;
 		file->ifs = temp;
 
@@ -542,12 +542,12 @@ Token* Scanner::process_macro_command() {
 			return result;
 
 		bool truth = Defined_Macros.find(current_lexeme) == Defined_Macros.end();
-		
+
 		If_Tree_PreProcessor* temp = new If_Tree_PreProcessor;
 		temp->macro = "ifndef";
 		temp->line_number = get_line_number();
 		temp->next = file->ifs;
-		temp->is_it_true = truth;
+		temp->is_it_true = (all_macros ? truth : false);
 		temp->else_case = truth;
 		file->ifs = temp;
 
@@ -555,7 +555,7 @@ Token* Scanner::process_macro_command() {
 		if (file->ifs == nullptr)
 			return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(get_line_number()) + ": error #endif without #if");
 		file->ifs = file->ifs -> next;
-
+		
 	} else if (macro_command == "if") {
 		ignoreWhiteSpaceAndComments();
 		if ((last_character= file->the_file.peek())  == '\n')
@@ -566,7 +566,7 @@ Token* Scanner::process_macro_command() {
 		temp->macro = "if";
 		temp->line_number = get_line_number();
 		temp->next = file->ifs;
-		temp->is_it_true = truth;
+		temp->is_it_true = (all_macros ? truth : false);
 		temp->else_case = truth;
 		file->ifs = temp;
 
@@ -594,7 +594,7 @@ Token* Scanner::process_macro_command() {
 		file->ifs->is_it_true = !file->ifs->else_case;
 		file->ifs->ran_else = true;
 	
-	} else if (macro_command == "error") {
+	} else if (all_macros && macro_command == "error") {
 		ignoreWhiteSpaceAndComments();
 		while ((last_character = file->the_file.get()) != '\n' && last_character != -1) {
 			if (isWhiteSpace(last_character))
@@ -602,10 +602,12 @@ Token* Scanner::process_macro_command() {
 			follow_up += last_character;
 		}
 		return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(macro_line_number) + ": #error " + follow_up);
-	} else if (macro_command == "pragma") {
-	} else
+	} else if (all_macros && macro_command == "pragma") {
+	} else if (all_macros)
 		return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(macro_line_number) + ": error: invalid preprocessing directive #" + macro_command);
-	return extra_tokens_macro_command(macro_command,macro_line_number);
+	if (all_macros)
+		return extra_tokens_macro_command(macro_command,macro_line_number);
+	return nullptr;
 }
 
 bool Scanner::process_if_statement() {
@@ -659,7 +661,7 @@ Token* Scanner::skipping_lines_until_endif(const std::string& macro) {
 			new_line();
 			ignoreWhiteSpaceAndComments();
 			if ((last_character = file->the_file.get()) == '#') {
-				return process_macro_command();
+				return process_macro_command(false);
 			} else if (last_character == '\n')
 				file->the_file.putback(last_character);
 		}
