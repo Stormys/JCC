@@ -32,7 +32,7 @@ Token* Scanner::Get_Next_Token()
 	current_lexeme = "";
 
 	// Checks if tree for a false if to skip
-	if (file->ifs != nullptr && !file->ifs->is_it_true) {
+	while (file->ifs != nullptr && !file->ifs->is_it_true) {
 		if ((result = skipping_lines_until_endif(file->ifs->macro)) != nullptr)
 			return result;
 	}
@@ -526,23 +526,29 @@ Token* Scanner::process_macro_command() {
 	} else if (macro_command == "ifdef") {
 		if ((result = parse_for_macro_identifier("ifdef",macro_line_number)) != nullptr)
 			return result;
+		
+		bool truth = Defined_Macros.find(current_lexeme) != Defined_Macros.end();
 
 		If_Tree_PreProcessor* temp = new If_Tree_PreProcessor;
 		temp->macro = "ifdef";
 		temp->next = file->ifs;
 		temp->line_number = get_line_number();
-		temp->is_it_true = Defined_Macros.find(current_lexeme) != Defined_Macros.end();
+		temp->is_it_true = truth;
+		temp->else_case = truth;
 		file->ifs = temp;
 
 	} else if (macro_command == "ifndef") {
 		if ((result = parse_for_macro_identifier("ifndef",macro_line_number)) != nullptr)
 			return result;
 
+		bool truth = Defined_Macros.find(current_lexeme) == Defined_Macros.end();
+		
 		If_Tree_PreProcessor* temp = new If_Tree_PreProcessor;
 		temp->macro = "ifndef";
 		temp->line_number = get_line_number();
 		temp->next = file->ifs;
-		temp->is_it_true = Defined_Macros.find(current_lexeme) == Defined_Macros.end();
+		temp->is_it_true = truth;
+		temp->else_case = truth;
 		file->ifs = temp;
 
 	} else if (macro_command == "endif") {
@@ -554,20 +560,40 @@ Token* Scanner::process_macro_command() {
 		ignoreWhiteSpaceAndComments();
 		if ((last_character= file->the_file.peek())  == '\n')
 			return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(get_line_number()) + ": error expected value in expression");
+		
+		bool truth = run_eval(obtain_follow_up_defined_macro());
 		If_Tree_PreProcessor* temp = new If_Tree_PreProcessor;
 		temp->macro = "if";
 		temp->line_number = get_line_number();
 		temp->next = file->ifs;
-		temp->is_it_true = run_eval(obtain_follow_up_defined_macro());
+		temp->is_it_true = truth;
+		temp->else_case = truth;
 		file->ifs = temp;
 
 	} else if (macro_command == "elif") {
 		if (file->ifs == nullptr)
 			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(get_line_number()) + ": error #elif without #if");
+		ignoreWhiteSpaceAndComments();
+		if ((last_character = file->the_file.peek()) == '\n')
+			return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(macro_line_number) + ": error expected value in expression");
+		std::string temp = obtain_follow_up_defined_macro();
+		if (file->ifs->ran_else)
+			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(macro_line_number) + ": error #elif after #else");
+		if (file->ifs->else_case) {
+			file->ifs->is_it_true = false;
+		} else {
+			bool truth = run_eval(temp);
+			file->ifs->is_it_true = truth;
+			file->ifs->else_case = truth;
+		}
 	} else if (macro_command == "else") {
 		if (file->ifs == nullptr)
 			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(get_line_number()) + ": error #else without #if");
-		file->ifs->is_it_true = !file->ifs->is_it_true;
+		if (file->ifs->ran_else)
+			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(macro_line_number) + ": error #else after #else");
+		file->ifs->is_it_true = !file->ifs->else_case;
+		file->ifs->ran_else = true;
+	
 	} else if (macro_command == "error") {
 		ignoreWhiteSpaceAndComments();
 		while ((last_character = file->the_file.get()) != '\n' && last_character != -1) {
@@ -633,28 +659,7 @@ Token* Scanner::skipping_lines_until_endif(const std::string& macro) {
 			new_line();
 			ignoreWhiteSpaceAndComments();
 			if ((last_character = file->the_file.get()) == '#') {
-				if ((result = parse_for_macro_identifier("endif",4)) == nullptr) {
-					if (current_lexeme == "endif"){
-						file->ifs = file->ifs -> next;
-						current_lexeme = "";
-						if (file->ifs == nullptr)
-							return nullptr;
-					} else if (current_lexeme == "ifdef" || current_lexeme == "if" || current_lexeme == "ifndef") {
-						If_Tree_PreProcessor* temp = new If_Tree_PreProcessor;
-						temp->macro = current_lexeme;
-						temp->next = file->ifs;
-						temp->line_number = get_line_number();
-						temp->is_it_true = false;
-						file->ifs = temp;
-					} else if (current_lexeme == "else") {
-						file->ifs->is_it_true = true;
-						current_lexeme = "";
-						return nullptr;
-					}
-					current_lexeme = "";
-					continue;
-				}
-				return result;
+				return process_macro_command();
 			} else if (last_character == '\n')
 				file->the_file.putback(last_character);
 		}

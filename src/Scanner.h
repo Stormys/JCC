@@ -19,6 +19,8 @@ private:
 		If_Tree_PreProcessor* next;
 		int line_number;
 		bool is_it_true;
+		bool else_case = false;
+		bool ran_else = false;
 	};
 
 	struct File_Linked {
