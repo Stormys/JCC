@@ -91,5 +91,6 @@ private:
 	char last_character = '\0';
 	std::string current_lexeme = "";
 	bool first_char = false;
+	bool first_char_in_line = true;
 	std::string local_path;
 };                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        

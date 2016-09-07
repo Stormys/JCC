@@ -29,6 +29,8 @@ void Scanner::get_first_non_whitespace_character() {
 Token* Scanner::Get_Next_Token()
 {
 	Token* result;
+	if (last_character != '\0')
+		first_char_in_line = false;
 	current_lexeme = "";
 
 	// Checks if tree for a false if to skip
@@ -54,18 +56,13 @@ Token* Scanner::Get_Next_Token()
 
 		file = file->next;
 		last_character = '\0';
-
+		first_char_in_line = true;
 		return Get_Next_Token();
 	}
 
 	first_char = true;
 
 	switch (last_character) {
-	case '#': //PreProccessor Macro Commands
-		result = process_macro_command(true);
-		if (result != nullptr)
-			return result;
-		return Get_Next_Token();
 	case '(':
 		return new Token(Token::OPEN_PAREN, "(");
 	case ')':
@@ -404,6 +401,13 @@ Token* Scanner::Get_Next_Token()
 		}
 		consume_character();
 		return new Token(Token::C_STRING, current_lexeme);
+	case '#': //PreProccessor Macro Commands
+		if (first_char_in_line) {
+			result = process_macro_command(true);
+			if (result != nullptr)
+				return result;
+			return Get_Next_Token();
+		}
 	default:
 		result = find_identifier();
 		if (result != nullptr)
@@ -848,6 +852,7 @@ bool Scanner::isNumeric(char& c) {
 
 void Scanner::new_line() {
 	file->line_number++;
+	first_char_in_line = true;
 }
 
 void Scanner::ignoreWhiteSpaceAndComments() {
