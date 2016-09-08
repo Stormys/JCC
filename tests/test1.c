@@ -1,4 +1,5 @@
-#if 4 % 2  
+#define hello(x)  x
+#if int
 int main(int argc, char* argv[])  	{
 	return 0;
 }

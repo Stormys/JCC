@@ -100,4 +100,6 @@ private:
 	std::vector<Token::Kind> preprocessor_if_op{Token::ADD, Token::SUBTRACT, Token::DIVIDE, Token::MULTIPLY, Token::BINARY_LEFT_SHIFT, Token::BINARY_RIGHT_SHIFT, \
 	Token::LESS_THAN, Token::LESS_THAN_EQUAL, Token::GREATER_THAN, Token::GREATER_THAN_EQUAL, Token::EQUAL, Token::NOT_EQUAL, Token::BINARY_AND, Token::BINARY_OR, Token::BINARY_XOR, \
 	Token::LOGICAL_AND, Token::LOGICAL_OR, Token::MODULUS};
+
+	std::vector<Token::Kind> preprocessor_identifier{Token::IDENTIFIER,Token::INT};
 };                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        

@@ -641,11 +641,15 @@ int Scanner::process_if_statement() {
 		} else if (temp->get_kind() == Token::CLOSE_PAREN) {
 			--paren;
 			buffer += temp->get_lexeme();
+		} else if (expect == 0 && std::find(preprocessor_identifier.begin(),preprocessor_identifier.end(),temp->get_kind()) != preprocessor_identifier.end()) {
+			expect = 1;
+			buffer+= "0";
 		} else 
 			return -9;
 		ignoreWhiteSpaceAndComments();	
 		last_character = file->the_file.peek();
 	}
+	std::cout << buffer << std::endl;
 	if (expect == 0)
 		return -9;
 	if (paren != 0)
