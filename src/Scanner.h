@@ -95,7 +95,9 @@ private:
 	bool first_char_in_line = true;
 	std::string local_path;
 
-	std::vector<Token::Kind> preprocessor_if_tokens{Token::INTEGER, Token::LOGICAL_NOT, Token::LOGICAL_OR, Token::LOGICAL_AND, Token::LESS_THAN,Token::LESS_THAN_EQUAL, \
-	Token::GREATER_THAN, Token::GREATER_THAN_EQUAL, Token::BINARY_LEFT_SHIFT, Token::BINARY_RIGHT_SHIFT, Token::EQUAL,Token::SUBTRACT,Token::ADD, Token::MULTIPLY, Token::DIVIDE, \
-	Token::NOT_EQUAL, Token::OPEN_PAREN,Token::CLOSE_PAREN};
+	std::vector<Token::Kind> preprocessor_number_op{Token::LOGICAL_NOT,Token::ADD,Token::SUBTRACT,Token::BINARY_ONES_COMPLEMENT};
+
+	std::vector<Token::Kind> preprocessor_if_op{Token::ADD, Token::SUBTRACT, Token::DIVIDE, Token::MULTIPLY, Token::BINARY_LEFT_SHIFT, Token::BINARY_RIGHT_SHIFT, \
+	Token::LESS_THAN, Token::LESS_THAN_EQUAL, Token::GREATER_THAN, Token::GREATER_THAN_EQUAL, Token::EQUAL, Token::NOT_EQUAL, Token::BINARY_AND, Token::BINARY_OR, Token::BINARY_XOR, \
+	Token::LOGICAL_AND, Token::LOGICAL_OR, Token::MODULUS};
 };                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        

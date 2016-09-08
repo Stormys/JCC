@@ -52,11 +52,14 @@ long expression2() {
 
 long expression1() {
 	long result = expression2();
-	while (peek() == '*' || peek() == '/')
-		if (get() == '*')
+	while (peek() == '*' || peek() == '/' || peek() == '%')
+		if (peek() == '*') {
+			get();
 			result *= expression2(); 	
-		else
+		} else if (get() == '/')
 			result /= expression2();
+		else
+			result %= expression2();
 	return result;
 }
 
@@ -190,7 +193,6 @@ bool run_eval(std::string eval_temp) {
 	our_string = eval_temp;
 	placeholder = 0;
 	long result = expression_8();
-	std::cout << result << std::endl;
 	return result;
 }
 

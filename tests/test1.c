@@ -1,4 +1,4 @@
-#if !(2*24)   
+#if 4 % 2  
 int main(int argc, char* argv[])  	{
 	return 0;
 }

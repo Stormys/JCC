@@ -565,13 +565,12 @@ Token* Scanner::process_macro_command(bool all_macros) {
 		
 	} else if (macro_command == "if") {
 		ignoreWhiteSpaceAndComments();
-		if ((last_character= file->the_file.peek())  == '\n')
-			return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(get_line_number()) + ": error expected value in expression");
 		
 		int truth = process_if_statement();
 		if (truth == -9)
 			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(macro_line_number) + ": error unexpected value in expression");
-
+		if (truth == -8)
+			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(macro_line_number) + ": error expected ')' in expression");
 		If_Tree_PreProcessor* temp = new If_Tree_PreProcessor;
 		temp->macro = "if";
 		temp->line_number = get_line_number();
@@ -584,13 +583,13 @@ Token* Scanner::process_macro_command(bool all_macros) {
 		if (file->ifs == nullptr)
 			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(get_line_number()) + ": error #elif without #if");
 		ignoreWhiteSpaceAndComments();
-		if ((last_character = file->the_file.peek()) == '\n')
-			return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(macro_line_number) + ": error expected value in expression");
 		int truth = process_if_statement();
 		if (file->ifs->ran_else)
 			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(macro_line_number) + ": error #elif after #else");
 		if (truth == -9)
 			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(macro_line_number) + ": error unexpected symbol in expression");
+		if (truth == -8)
+			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(macro_line_number) + ": error expected ')' in expression");
 		if (file->ifs->else_case) {
 			file->ifs->is_it_true = false;
 		} else {
@@ -624,16 +623,33 @@ Token* Scanner::process_macro_command(bool all_macros) {
 int Scanner::process_if_statement() {
 	ignoreWhiteSpaceAndComments();
 	std::string buffer = ""; 
+	short expect = 0;
+	short paren = 0;
 	while(last_character != '\n' && last_character != -1) {
 		Token* temp = Get_Next_Token();
-		if (std::find(preprocessor_if_tokens.begin(),preprocessor_if_tokens.end(),temp->get_kind()) != preprocessor_if_tokens.end())
+		if (expect == 0 && temp->get_kind() == Token::INTEGER) {
+			expect = 1;
 			buffer += temp->get_lexeme();
-		else 
+		} else if (expect == 0 && std::find(preprocessor_number_op.begin(),preprocessor_number_op.end(),temp->get_kind()) != preprocessor_number_op.end())
+			buffer += temp->get_lexeme();
+		else if (expect == 1 && std::find(preprocessor_if_op.begin(),preprocessor_if_op.end(),temp->get_kind()) != preprocessor_if_op.end()) {
+			expect = 0;
+			buffer += temp->get_lexeme();
+		} else if (temp->get_kind() == Token::OPEN_PAREN) {
+			++paren;
+			buffer += temp->get_lexeme();
+		} else if (temp->get_kind() == Token::CLOSE_PAREN) {
+			--paren;
+			buffer += temp->get_lexeme();
+		} else 
 			return -9;
 		ignoreWhiteSpaceAndComments();	
 		last_character = file->the_file.peek();
 	}
-	std::cout << buffer << std::endl;
+	if (expect == 0)
+		return -9;
+	if (paren != 0)
+		return -8;
 	return run_eval(buffer);
 }
 
