@@ -1,5 +1,5 @@
-#define hello(x)  x
-#if int
+#define x 1
+#if tx
 int main(int argc, char* argv[])  	{
 	return 0;
 }

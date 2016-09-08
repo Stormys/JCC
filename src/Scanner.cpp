@@ -441,7 +441,7 @@ Token* Scanner::process_macro_command(bool all_macros) {
 		}
 	}
 	macro_command = current_lexeme;
-
+	current_lexeme = "";
 	int macro_line_number = get_line_number();
 
 	if (all_macros && macro_command == "include") {
@@ -487,6 +487,10 @@ Token* Scanner::process_macro_command(bool all_macros) {
 			return result;
 
 		std::string macro_name = current_lexeme;
+	
+		if (macro_name == "defined")
+			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(macro_line_number) + ": error: 'defined' cannot be used as a macro name");
+
 		Macro_Info* temp = new Macro_Info;
 
 		if (last_character == '(') {
@@ -641,6 +645,9 @@ int Scanner::process_if_statement() {
 		} else if (temp->get_kind() == Token::CLOSE_PAREN) {
 			--paren;
 			buffer += temp->get_lexeme();
+		} else if (expect == 0 && temp->get_lexeme() == "defined") {
+			expect = 2;
+			//Sometimes life sucks
 		} else if (expect == 0 && std::find(preprocessor_identifier.begin(),preprocessor_identifier.end(),temp->get_kind()) != preprocessor_identifier.end()) {
 			expect = 1;
 			buffer+= "0";
@@ -650,7 +657,7 @@ int Scanner::process_if_statement() {
 		last_character = file->the_file.peek();
 	}
 	std::cout << buffer << std::endl;
-	if (expect == 0)
+	if (expect != 1)
 		return -9;
 	if (paren != 0)
 		return -8;
