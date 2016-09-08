@@ -83,7 +83,7 @@ private:
 	std::string obtain_follow_up_defined_macro();
 	void find_identifier_str();
 	void backslash_ignore();
-	bool process_if_statement();
+	int process_if_statement();
 
 	Expanded_Macro* macro = nullptr;
 
@@ -96,5 +96,6 @@ private:
 	std::string local_path;
 
 	std::vector<Token::Kind> preprocessor_if_tokens{Token::INTEGER, Token::LOGICAL_NOT, Token::LOGICAL_OR, Token::LOGICAL_AND, Token::LESS_THAN,Token::LESS_THAN_EQUAL, \
-	Token::GREATER_THAN, Token::GREATER_THAN_EQUAL, Token::BINARY_LEFT_SHIFT, Token::BINARY_RIGHT_SHIFT};
+	Token::GREATER_THAN, Token::GREATER_THAN_EQUAL, Token::BINARY_LEFT_SHIFT, Token::BINARY_RIGHT_SHIFT, Token::EQUAL,Token::SUBTRACT,Token::ADD, Token::MULTIPLY, Token::DIVIDE, \
+	Token::NOT_EQUAL, Token::OPEN_PAREN,Token::CLOSE_PAREN};
 };                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        

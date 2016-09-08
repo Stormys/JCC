@@ -65,8 +65,10 @@ Token* Scanner::Get_Next_Token()
 
 	switch (last_character) {
 	case '(':
+		get_next_character();
 		return new Token(Token::OPEN_PAREN, "(");
 	case ')':
+		get_next_character();
 		return new Token(Token::CLOSE_PAREN, ")");
 	case '{':
 		return new Token(Token::OPEN_CURLY, "{");
@@ -428,8 +430,8 @@ Token* Scanner::process_macro_command(bool all_macros) {
 	Token* result = nullptr;
 	current_lexeme = "";
 	ignoreWhiteSpaceAndComments();
-
-	if ((last_character = file->the_file.peek()) == '\n')
+	
+	if ((last_character = file->the_file.peek())  == '\n')
 		return nullptr;
 
 	first_char = false;
@@ -566,7 +568,10 @@ Token* Scanner::process_macro_command(bool all_macros) {
 		if ((last_character= file->the_file.peek())  == '\n')
 			return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(get_line_number()) + ": error expected value in expression");
 		
-		bool truth = process_if_statement();
+		int truth = process_if_statement();
+		if (truth == -9)
+			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(macro_line_number) + ": error unexpected value in expression");
+
 		If_Tree_PreProcessor* temp = new If_Tree_PreProcessor;
 		temp->macro = "if";
 		temp->line_number = get_line_number();
@@ -581,9 +586,11 @@ Token* Scanner::process_macro_command(bool all_macros) {
 		ignoreWhiteSpaceAndComments();
 		if ((last_character = file->the_file.peek()) == '\n')
 			return new Token(Token::ERROR1,file->file_name + ":" + std::to_string(macro_line_number) + ": error expected value in expression");
-		bool truth = process_if_statement();
+		int truth = process_if_statement();
 		if (file->ifs->ran_else)
 			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(macro_line_number) + ": error #elif after #else");
+		if (truth == -9)
+			return new Token(Token::ERROR1, file->file_name + ":" + std::to_string(macro_line_number) + ": error unexpected symbol in expression");
 		if (file->ifs->else_case) {
 			file->ifs->is_it_true = false;
 		} else {
@@ -614,14 +621,18 @@ Token* Scanner::process_macro_command(bool all_macros) {
 	return nullptr;
 }
 
-bool Scanner::process_if_statement() {
+int Scanner::process_if_statement() {
 	ignoreWhiteSpaceAndComments();
 	std::string buffer = ""; 
 	while(last_character != '\n' && last_character != -1) {
 		Token* temp = Get_Next_Token();
 		if (std::find(preprocessor_if_tokens.begin(),preprocessor_if_tokens.end(),temp->get_kind()) != preprocessor_if_tokens.end())
 			buffer += temp->get_lexeme();
-	}		
+		else 
+			return -9;
+		ignoreWhiteSpaceAndComments();	
+		last_character = file->the_file.peek();
+	}
 	std::cout << buffer << std::endl;
 	return run_eval(buffer);
 }

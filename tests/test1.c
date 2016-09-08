@@ -1,4 +1,4 @@
-#if 4 <  0
+#if !(2*24)   
 int main(int argc, char* argv[])  	{
 	return 0;
 }

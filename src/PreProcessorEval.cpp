@@ -38,10 +38,14 @@ long expression3() {
 long expression2() {
 	long result = expression3();
 	while (peek() == '!' || peek() == '~')
-		if (get() == '!') 
+		if (peek() == '!' && our_string[placeholder +1] != '=') { 
+			get();
 			result = !expression3();
-		else
+		} else if (peek() == '~') {
+			get();
 			result = ~expression3();
+		} else
+			return result;
 	return result;
 }
 
@@ -103,12 +107,29 @@ long expression_2() {
 	return result;
 }
 
-long expression_4() {
+long expression_3() {
 	long result = expression_2();
+	while (peek() == '=' || peek() == '!') {
+		if (peek() == '!' && our_string[placeholder + 1] == '=') {
+			get();
+			get();
+			result = result != expression_2();
+		} else if (peek() == '=' && our_string[placeholder +1] == '=') {
+			get();
+			get();
+			result = result == expression_2();
+		} else 
+			return result;
+	}
+	return result;
+}
+
+long expression_4() {
+	long result = expression_3();
 	while (peek() == '&') {
 		if (our_string[placeholder + 1] != '&') {
 			get();
-			result = result & expression_2();
+			result = result & expression_3();
 		} else
 			return result;
 	}
@@ -126,11 +147,11 @@ long expression_5() {
 
 
 long expression_6() {
-	long result = expression_2();
+	long result = expression_5();
 	while (peek() == '|') {
 		if (our_string[placeholder + 1] != '|') {
 			get();
-			result = result | expression_2();
+			result = result | expression_5();
 		} else
 			return result;
 	}
@@ -169,5 +190,7 @@ bool run_eval(std::string eval_temp) {
 	our_string = eval_temp;
 	placeholder = 0;
 	long result = expression_8();
+	std::cout << result << std::endl;
 	return result;
 }
+
