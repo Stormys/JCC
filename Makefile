@@ -1,4 +1,4 @@
-CC = g++ -std=c++11
+CC = g++ -g -std=c++11
 OBJ = Scanner.o Token.o Compiler.o
 
 all: $(OBJ)

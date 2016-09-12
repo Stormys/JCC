@@ -76,7 +76,8 @@ private:
 	Token* extra_tokens_macro_command(const std::string&,int);
 
 	File_Linked * find_file_in_standard_lib(std::string);
-	std::unordered_map<std::string, Macro_Info*> Defined_Macros{ {"__GNUC__",new Macro_Info("4")}, {"__GNUC_MINOR__",new Macro_Info("2")}};
+	std::unordered_map<std::string, Macro_Info*> Defined_Macros{ {"__GNUC__",new Macro_Info("4")}, {"__GNUC_MINOR__",new Macro_Info("2")}, {"__STDC_VERSION__", new Macro_Info("199901")}, \
+		{"__x86_64__",new Macro_Info("1")}};
 	Token* is_defined_macro(std::string);
 	Token* parse_for_macro_identifier(std::string,int);
 	Token* skipping_lines_until_endif(const std::string&);
@@ -94,6 +95,7 @@ private:
 	bool first_char = false;
 	bool first_char_in_line = true;
 	std::string local_path;
+	bool check_for_luck = true;
 
 	std::vector<Token::Kind> preprocessor_number_op{Token::LOGICAL_NOT,Token::ADD,Token::SUBTRACT,Token::BINARY_ONES_COMPLEMENT};
 
