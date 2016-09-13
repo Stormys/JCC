@@ -411,12 +411,12 @@ Token* Scanner::Get_Next_Token()
 		consume_character();
 		return new Token(Token::C_STRING, current_lexeme);
 	case '#': //PreProccessor Macro Commands
-//		if (first_char_in_line) {
+		if (first_char_in_line) {
 			result = process_macro_command(true);
 			if (result != nullptr)
 				return result;
 			return Get_Next_Token();
-		//}
+		}
 	default:
 		result = find_identifier();
 		if (result != nullptr)
@@ -814,7 +814,6 @@ Scanner::File_Linked* Scanner::find_file_in_standard_lib(std::string lib_name) {
 	File_Linked* temp = new File_Linked;
 	temp->file_name = lib_name;
 	temp->the_file.open("/usr/include/" + lib_name);
-	std::cout << lib_name << std::endl;
 	temp->next = file;
 	if (temp->the_file.is_open())
 		return temp;
@@ -825,6 +824,18 @@ Token* Scanner::find_identifier() {
 	if (current_lexeme.size() != 0 || isAlpha(last_character)) {
 		while (isAlpha(last_character) || isNumeric(last_character)) {
 			get_next_character();
+		}
+		if (last_character == '#') {
+			get_next_character();
+			if (last_character == '#') {
+				std::string temp = current_lexeme.substr(0,current_lexeme.length()-1);
+				get_next_character();
+				current_lexeme ="";
+				Token* temp2 = Get_Next_Token();
+				if (temp2->get_kind() != Token::IDENTIFIER && temp2->get_kind() != Token::INTEGER)
+					return new Token(Token::ERROR1, "Cannot concat the stuff ");
+				current_lexeme = temp + current_lexeme;
+			}
 		}
 		return is_defined_macro(current_lexeme);
 	}
@@ -893,6 +904,8 @@ void Scanner::get_next_character() {
 void Scanner::get_next_character2() {
 	if (macro != nullptr && macro->macro_location != macro->macro_to_be_expanded.length()) {
 		last_character = macro->macro_to_be_expanded[macro->macro_location];
+	} else if (macro != nullptr && std::find(macro->param_names.begin(),macro->param_names.end(),current_lexeme) != macro->param_names.end()) {
+			last_character = '\0';
 	} else if (macro != nullptr) {
 		macro = macro->next;
 		get_next_character2();

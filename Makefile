@@ -2,7 +2,7 @@ CC = g++ -g -std=c++11
 OBJ = Scanner.o Token.o Compiler.o
 
 all: $(OBJ)
-	$(CC) -o JCC $(OBJ) 
+	$(CC) -o jcc $(OBJ) 
 
 Compiler.o: src/Compiler.cpp src/Compiler.h
 	$(CC) src/Compiler.cpp -c
