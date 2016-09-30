@@ -11,7 +11,14 @@ Compiler::~Compiler()
 	delete s;
 }
 
-void Compiler::Start_compile() {
+
+// Runs Preprocessor/Scanner(Lexical Analysis)/Parser
+void Compiler::Parser_compile() {
+
+}
+
+//Only runs Preprocessor/Scanner(Lexical Analysis)
+void Compiler::Scanner_compile() {
 	Token* currentToken = (*s).Get_Next_Token();
 	while ((*currentToken).get_kind() != Token::E0F) {
 		std::cout << Token::Kind_TEXT[(*currentToken).get_kind()] <<  " - " <<  (*currentToken).get_lexeme() << std::endl;
@@ -27,7 +34,7 @@ int main(int argc, char* argv[]) {
 	std::string s(argv[1],std::strlen(argv[1]));
 	try {
 		Compiler* c = new Compiler(s);
-		(*c).Start_compile();
+		(*c).Scanner_compile();
 		delete c;
 	} catch (std::ios_base::failure e) {
 		std::cout << e.what() << std::endl;

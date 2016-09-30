@@ -4,7 +4,9 @@ class Compiler
 public:
 	Compiler(std::string&);
 	~Compiler();
-	void Start_compile();
+
+	void Scanner_compile();
+	void Parser_compile();
 private:
 	Scanner* s;
 };

@@ -15,5 +15,8 @@ Scanner (Tokenization):
 * numbers in float/decimal format
 * \ at end of line may or not work as expected.
 
+Parser:
+* currently working on basic functionality
+
 ## License
 JCC is released under [MIT License](LICENSE).
