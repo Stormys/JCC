@@ -31,7 +31,7 @@ void Compiler::Scanner_compile() {
 }
 
 int main(int argc, char* argv[]) {
-	std::string s(argv[1],std::strlen(argv[1]));
+	std::string s(argv[1],strlen(argv[1]));
 	try {
 		Compiler* c = new Compiler(s);
 		(*c).Scanner_compile();

@@ -1,11 +1,12 @@
 #include "Token.h"
-#include <unordered_set>
+#include <initializer_list>
+#include <vector>
 class NonTerminal
 {
 public:
-	NonTerminal(std::unordered_set<Token::Kind>& temp);
+	NonTerminal(const std::initializer_list<Token::Kind>& il);
+	NonTerminal(const std::initializer_list<Token::Kind>& il, std::initializer_list<NonTerminal>);
+	NonTerminal(const std::initializer_list<NonTerminal> il);
 	~NonTerminal();
-	std::unordered_set<Token::Kind> firstset;
+	std::vector<Token::Kind> firstset;
 };
-
-

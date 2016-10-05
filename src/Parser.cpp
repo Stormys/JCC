@@ -1,15 +1,15 @@
 #include "Parser.h"
 
-NonTerminal* DECLARATION = new NonTerminal(*(new std::unordered_set<Token::Kind>({ Token::INT })));
-NonTerminal* FUNCTION = new NonTerminal(*(new std::unordered_set<Token::Kind>({ Token::OPEN_PAREN })));
-NonTerminal* STATEMENT_BLOCK = new NonTerminal(*(new std::unordered_set<Token::Kind>({ Token::RETURN, Token::INT })));
-NonTerminal* TYPES = new NonTerminal(*(new std::unordered_set<Token::Kind>({ Token::INTEGER })));
-NonTerminal* VARIABLE_ASSIGNMENT = new NonTerminal(*(new std::unordered_set<Token::Kind>({ Token::ASSIGN })));
+NonTerminal DECLARATION ({ Token::INT });
+NonTerminal STATEMENT_BLOCK ({ Token::RETURN, Token::INT });
+NonTerminal TYPES ({ Token::INTEGER });
+NonTerminal VARIABLE_ASSIGNMENT ({ Token::ASSIGN });
 
 
 Parser::Parser()
 {
-	s = new Scanner("test1.c",false);
+	std::string t = "test1.c";
+	s = new Scanner(t);
 	currentToken = (*s).Get_Next_Token();
 }
 
@@ -28,7 +28,7 @@ bool Parser::expect(Token::Kind temp) {
 	if (accept(temp))
 		return true;
 	std::cout << "Line " << (*s).get_line_number() << ": PARSING ERROR: Found " << Token::Kind_TEXT[(*currentToken).get_kind()] << " when expected: " << Token::Kind_TEXT[temp] << std::endl;
-	return false;	
+	return false;
 }
 
 bool Parser::accept(Token::Kind temp) {
@@ -52,7 +52,7 @@ bool Parser::have(Token::Kind temp) {
 }
 
 bool Parser::have(const NonTerminal& temp) {
-	return temp.firstset.find((*currentToken).get_kind()) != temp.firstset.end();
+	return std::find(temp.firstset.begin(),temp.firstset.end(),(*currentToken).get_kind()) != temp.firstset.end();
 }
 
 void Parser::function(bool definition) {
@@ -69,14 +69,14 @@ void Parser::function(bool definition) {
 }
 
 void Parser::declaration(bool definition) { //Variable and Function Dec/Def
-	accept(*DECLARATION);
+	accept(DECLARATION);
 	expect(Token::IDENTIFIER);
-	if (have(*FUNCTION)) {
+	/*if (have(FUNCTION)) {
 		function(definition);
-	}
-	else if (have(*VARIABLE_ASSIGNMENT)) { //Variable definition
+	}*/
+	 if (have(VARIABLE_ASSIGNMENT)) { //Variable definition
 		expect(Token::ASSIGN);
-		expect(*TYPES);
+		expect(TYPES);
 		expect(Token::SEMICOLON);
 	}
 	else { //just a declaration
@@ -85,11 +85,11 @@ void Parser::declaration(bool definition) { //Variable and Function Dec/Def
 }
 
 void Parser::statement_block() { //Function Block
-	while (have(*STATEMENT_BLOCK)) {
+	while (have(STATEMENT_BLOCK)) {
 		if (have(Token::RETURN)) {
 			return_statement();
 		}
-		else if (have(*DECLARATION)) {
+		else if (have(DECLARATION)) {
 			declaration(false);
 		}
 	}
@@ -97,13 +97,13 @@ void Parser::statement_block() { //Function Block
 
 void Parser::return_statement() {
 	expect(Token::RETURN);
-	accept(*TYPES);
+	accept(TYPES);
 	expect(Token::SEMICOLON);
 }
 
 void Parser::statement() { //Statements(outside of functions)
 	while (have(Token::INT)) {
-		if (have(*DECLARATION)) {
+		if (have(DECLARATION)) {
 			declaration(true);
 		}
 	}

@@ -1,3 +1,4 @@
+#include <string.h>
 #include "Scanner.h"
 class Compiler
 {
@@ -10,4 +11,3 @@ public:
 private:
 	Scanner* s;
 };
-
