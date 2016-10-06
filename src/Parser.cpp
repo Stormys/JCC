@@ -1,9 +1,10 @@
 #include "Parser.h"
 
 NonTerminal DECLARATION ({ Token::INT });
-NonTerminal STATEMENT_BLOCK ({ Token::RETURN, Token::INT });
+NonTerminal STATEMENT_BLOCK ({ Token::RETURN}, {DECLARATION});
 NonTerminal TYPES ({ Token::INTEGER });
 NonTerminal VARIABLE_ASSIGNMENT ({ Token::ASSIGN });
+NonTerminal FUNCTION ({Token::OPEN_PAREN});
 
 
 Parser::Parser()
@@ -52,7 +53,7 @@ bool Parser::have(Token::Kind temp) {
 }
 
 bool Parser::have(const NonTerminal& temp) {
-	return std::find(temp.firstset.begin(),temp.firstset.end(),(*currentToken).get_kind()) != temp.firstset.end();
+	return temp.find((*currentToken).get_kind());
 }
 
 void Parser::function(bool definition) {
@@ -71,9 +72,9 @@ void Parser::function(bool definition) {
 void Parser::declaration(bool definition) { //Variable and Function Dec/Def
 	accept(DECLARATION);
 	expect(Token::IDENTIFIER);
-	/*if (have(FUNCTION)) {
+	if (have(FUNCTION)) {
 		function(definition);
-	}*/
+	}
 	 if (have(VARIABLE_ASSIGNMENT)) { //Variable definition
 		expect(Token::ASSIGN);
 		expect(TYPES);

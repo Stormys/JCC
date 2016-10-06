@@ -4,7 +4,6 @@ JCC 's LL(1) Top down Parser.
 #include "NonTerminal.h"
 #include "Scanner.h"
 #include <iostream>
-#include <algorithm>
 #pragma once
 class Parser
 {
