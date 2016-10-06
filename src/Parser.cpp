@@ -35,6 +35,8 @@ bool Parser::expect(Token::Kind temp) {
 
 bool Parser::accept(Token::Kind temp) {
 	if (have(temp)) {
+		if ((*currentToken).get_kind() == Token::IDENTIFIER)
+			prev = (*currentToken).get_lexeme();
 		currentToken = (*s).Get_Next_Token();
 		return true;
 	}
@@ -43,6 +45,8 @@ bool Parser::accept(Token::Kind temp) {
 
 bool Parser::accept(const NonTerminal& temp) {
 	if (have(temp)) {
+		if ((*currentToken).get_kind() == Token::IDENTIFIER)
+			prev = (*currentToken).get_lexeme();
 		currentToken = (*s).Get_Next_Token();
 		return true;
 	}
@@ -57,7 +61,17 @@ bool Parser::have(const NonTerminal& temp) {
 	return temp.find((*currentToken).get_kind());
 }
 
+void Parser::declare_symbol(std::string& lex) {
+	try {
+		symboltable->insert(lex);
+		std::cout << symboltable->table_results() << std::endl;
+	} catch (...) {
+		std::cout << "ERROR DEFINING " << lex << std::endl;
+	}
+}
+
 void Parser::function(bool definition) {
+	symboltable = new SymbolTable(symboltable);
 	expect(Token::OPEN_PAREN);
 
 	if (have(DECLARATION)) //function params
@@ -75,11 +89,13 @@ void Parser::function(bool definition) {
 	else {
 		expect(Token::SEMICOLON);
 	}
+	symboltable = symboltable->get_parent();
 }
 
 void Parser::variable_declaration() {
 	accept(DECLARATION);
 	expect(Token::IDENTIFIER);
+	declare_symbol(prev);
 	if(accept(Token::LEFT_BRACKET))
 		expect(Token::RIGHT_BRACKET);
 }
@@ -97,6 +113,7 @@ void Parser::variable_assign() {
 void Parser::declaration(bool definition) { //Variable and Function Dec/Def
 	accept(DECLARATION);
 	expect(Token::IDENTIFIER);
+	declare_symbol(prev);
 	if (have(FUNCTION))
 		function(definition);
 	else

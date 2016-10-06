@@ -20,6 +20,8 @@ private:
 	bool have(Token::Kind temp);
 	bool have(const NonTerminal& temp);
 
+	void declare_symbol(std::string&);
+
 	void function(bool definition);
 	void variable_assign();
 	void variable_declaration();
@@ -31,4 +33,5 @@ private:
 	Scanner* s;
 	Token* currentToken;
 	SymbolTable* symboltable;
+	std::string prev;
 };
