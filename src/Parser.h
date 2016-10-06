@@ -3,12 +3,13 @@ JCC 's LL(1) Top down Parser.
 */
 #include "NonTerminal.h"
 #include "Scanner.h"
+#include "SymbolTable.h"
 #include <iostream>
 #pragma once
 class Parser
 {
 public:
-	Parser();
+	Parser(std::string&);
 	~Parser();
 	void Program();
 private:
@@ -20,6 +21,8 @@ private:
 	bool have(const NonTerminal& temp);
 
 	void function(bool definition);
+	void variable_assign();
+	void variable_declaration();
 	void declaration(bool);
 	void statement();
 	void statement_block();
@@ -27,4 +30,5 @@ private:
 
 	Scanner* s;
 	Token* currentToken;
+	SymbolTable* symboltable;
 };

@@ -7,11 +7,12 @@ NonTerminal VARIABLE_ASSIGNMENT ({ Token::ASSIGN });
 NonTerminal FUNCTION ({Token::OPEN_PAREN});
 
 
-Parser::Parser()
+Parser::Parser(std::string& name)
 {
-	std::string t = "test1.c";
-	s = new Scanner(t);
+	s = new Scanner(name);
 	currentToken = (*s).Get_Next_Token();
+
+	symboltable = new SymbolTable();
 }
 
 Parser::~Parser()
@@ -58,6 +59,13 @@ bool Parser::have(const NonTerminal& temp) {
 
 void Parser::function(bool definition) {
 	expect(Token::OPEN_PAREN);
+
+	if (have(DECLARATION)) //function params
+		variable_declaration();
+		while(accept(Token::COMMA)) {
+			variable_declaration();
+		}
+
 	expect(Token::CLOSE_PAREN);
 	if (definition && have(Token::OPEN_CURLY)) {
 		expect(Token::OPEN_CURLY);
@@ -69,20 +77,30 @@ void Parser::function(bool definition) {
 	}
 }
 
-void Parser::declaration(bool definition) { //Variable and Function Dec/Def
+void Parser::variable_declaration() {
 	accept(DECLARATION);
 	expect(Token::IDENTIFIER);
-	if (have(FUNCTION)) {
-		function(definition);
-	}
-	 if (have(VARIABLE_ASSIGNMENT)) { //Variable definition
+	if(accept(Token::LEFT_BRACKET))
+		expect(Token::RIGHT_BRACKET);
+}
+
+void Parser::variable_assign() {
+	if(have(VARIABLE_ASSIGNMENT)) {
 		expect(Token::ASSIGN);
 		expect(TYPES);
 		expect(Token::SEMICOLON);
-	}
-	else { //just a declaration
+	} else {
 		expect(Token::SEMICOLON);
 	}
+}
+
+void Parser::declaration(bool definition) { //Variable and Function Dec/Def
+	accept(DECLARATION);
+	expect(Token::IDENTIFIER);
+	if (have(FUNCTION))
+		function(definition);
+	else
+		variable_assign();
 }
 
 void Parser::statement_block() { //Function Block

@@ -1,5 +1,5 @@
 CC = g++ -g -std=c++11
-OBJ = Scanner.o Token.o Compiler.o NonTerminal.o Parser.o
+OBJ = Scanner.o Token.o Compiler.o NonTerminal.o Parser.o SymbolTable.o
 
 all: $(OBJ)
 	$(CC) -o jcc $(OBJ) 
@@ -19,5 +19,8 @@ Parser.o: src/Parser.cpp src/Parser.h src/NonTerminal.h src/NonTerminal.cpp
 Scanner.o: src/Scanner.cpp src/Scanner.h src/Token.h src/Token.cpp
 	$(CC) src/Scanner.cpp -c
 	
+SymbolTable.o: src/SymbolTable.h src/SymbolTable.cpp
+	$(CC) src/SymbolTable.cpp -c
+
 clean: 
 	rm $(OBJ)
